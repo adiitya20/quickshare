@@ -18,8 +18,8 @@ import {
   Smartphone,
   FolderDown,
   HelpCircle,
-  Share2,
-  Download
+  Clock,
+  Sparkles
 } from 'lucide-react';
 
 export const MobileUpload: React.FC = () => {
@@ -33,17 +33,7 @@ export const MobileUpload: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [initError, setInitError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [showWaGuide, setShowWaGuide] = useState<boolean>(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
-  useEffect(() => {
-    const pwaHandler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', pwaHandler);
-    return () => window.removeEventListener('beforeinstallprompt', pwaHandler);
-  }, []);
+  const [showWaGuide, setShowWaGuide] = useState<boolean>(true);
 
   useEffect(() => {
     if (!token) {
@@ -73,20 +63,6 @@ export const MobileUpload: React.FC = () => {
 
     initMobileUpload();
   }, [token]);
-
-  const handleInstallPwa = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
-    } else {
-      alert(
-        'To show QrShareIt in your phone\'s WhatsApp Share Menu:\n\n' +
-        '1. Tap the 3 dots (⋮) in Chrome or Share button in Safari.\n' +
-        '2. Tap "Add to Home Screen".\n' +
-        '3. QrShareIt will now appear directly inside your WhatsApp share menu!'
-      );
-    }
-  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -255,7 +231,7 @@ export const MobileUpload: React.FC = () => {
             <span>+ Select Files from Phone</span>
           </label>
 
-          {/* Option 3: WhatsApp Document Folder Shortcut Label Trigger */}
+          {/* WhatsApp Document Shortcut Label Trigger */}
           <label
             htmlFor="whatsapp-file-input"
             className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer select-none"
@@ -264,37 +240,27 @@ export const MobileUpload: React.FC = () => {
             <span>📁 Pick File Received on WhatsApp</span>
           </label>
 
-          {/* Collapsible Helper: How to share from WhatsApp */}
+          {/* Quick Guide for WhatsApp Documents */}
           <div className="pt-2">
             <button
               onClick={() => setShowWaGuide(!showWaGuide)}
-              className="text-xs text-slate-500 hover:text-brand-600 font-semibold inline-flex items-center space-x-1"
+              className="text-xs text-slate-600 hover:text-brand-600 font-semibold inline-flex items-center space-x-1"
             >
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span>{showWaGuide ? 'Hide WhatsApp Share Guide' : '💡 How to enable QrShareIt in WhatsApp Share Menu?'}</span>
+              <HelpCircle className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{showWaGuide ? 'Hide WhatsApp Tip' : '💡 How to find your WhatsApp document in 2 seconds?'}</span>
             </button>
 
             {showWaGuide && (
-              <div className="mt-3 p-4 rounded-xl bg-slate-50 border border-slate-200 text-left text-xs text-slate-600 space-y-3 animate-fade-in">
-                <div className="space-y-1">
-                  <p className="font-extrabold text-slate-900">📲 Enable QrShareIt in Phone's Share Sheet:</p>
-                  <p className="text-[11px] leading-relaxed text-slate-600">
-                    To make <strong>QrShareIt</strong> appear in WhatsApp's native Share menu:
-                  </p>
-                  <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-700 pt-1">
-                    <li>Tap your browser menu (<strong>⋮</strong> in Chrome or <strong>Share</strong> in Safari).</li>
-                    <li>Tap <strong>"Add to Home Screen"</strong>.</li>
-                    <li>Now open any file in WhatsApp ➔ Tap Share ➔ Select <strong>QrShareIt</strong>!</li>
-                  </ol>
-                </div>
-
-                <button
-                  onClick={handleInstallPwa}
-                  className="w-full py-2.5 px-3 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5 text-brand-600" />
-                  <span>Add QrShareIt to Home Screen</span>
-                </button>
+              <div className="mt-3 p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 text-left text-xs text-slate-700 space-y-2 animate-fade-in">
+                <p className="font-extrabold text-emerald-950 flex items-center space-x-1">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>2-Second WhatsApp File Retrieval:</span>
+                </p>
+                <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-slate-700 leading-relaxed">
+                  <li>Tap the green <strong>"📁 Pick File Received on WhatsApp"</strong> button above.</li>
+                  <li>When the file picker opens, tap <strong>"Recent"</strong> or <strong>"Documents"</strong> at the top.</li>
+                  <li>Your downloaded WhatsApp PDF/Doc will be right at the top of the list!</li>
+                </ol>
               </div>
             )}
           </div>
