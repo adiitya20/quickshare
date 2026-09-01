@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import supertest from 'supertest';
-import fs from 'fs';
-import path from 'path';
 import { app } from '../app.js';
-import { initDatabase, db } from '../db/index.js';
+import { initDatabase, dbSetSessionExpiresAt } from '../db/index.js';
 import { purgeExpiredSessionsNow, stopCleanupTask } from '../services/cleanupService.js';
 import { createSession } from '../services/sessionService.js';
 
@@ -16,7 +14,6 @@ describe('QRPrint API & Security Integration Tests', () => {
 
   afterAll(() => {
     stopCleanupTask();
-    db.close();
   });
 
   it('1. GET /api/health should return ok', async () => {
@@ -90,17 +87,13 @@ describe('QRPrint API & Security Integration Tests', () => {
   });
 
   it('6. Automatic purge of expired sessions', async () => {
-    // Manually insert an already expired session into DB
     const { session, rawToken } = createSession('EXPIRED-PC');
-    db.prepare(`UPDATE sessions SET expires_at = ? WHERE id = ?`).run(
-      new Date(Date.now() - 10000).toISOString(),
-      session.id
-    );
+    // Set expires_at to 10 seconds in the past
+    dbSetSessionExpiresAt(session.id, new Date(Date.now() - 10000).toISOString());
 
     const count = purgeExpiredSessionsNow();
     expect(count).toBeGreaterThanOrEqual(1);
 
-    // Verify getting info returns 410 or status EXPIRED
     const checkRes = await request.get(`/api/sessions/${rawToken}`);
     expect(checkRes.body.status).toBe('EXPIRED');
     expect(checkRes.body.isExpired).toBe(true);

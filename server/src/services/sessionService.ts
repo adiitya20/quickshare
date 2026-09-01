@@ -1,4 +1,13 @@
-import { db } from '../db/index.js';
+import { 
+  dbInsertSession, 
+  dbGetSessionByTokenHash, 
+  dbGetSessionById, 
+  dbUpdateSessionStatus, 
+  dbGetFilesBySessionId, 
+  dbGetExpiredSessions, 
+  dbMarkSessionExpired, 
+  dbDeleteSession 
+} from '../db/index.js';
 import { generateSecureToken, hashToken, generateId } from '../utils/crypto.js';
 import { config } from '../utils/config.js';
 import { SessionRecord, FileRecord, SessionStatus } from '../types/index.js';
@@ -14,20 +23,6 @@ export function createSession(pcIdInput?: string): {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + config.sessionDurationMinutes * 60 * 1000);
 
-  const stmt = db.prepare(`
-    INSERT INTO sessions (id, pc_id, token_hash, created_at, expires_at, status)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    sessionId,
-    pcId,
-    tokenHash,
-    now.toISOString(),
-    expiresAt.toISOString(),
-    'WAITING'
-  );
-
   const session: SessionRecord = {
     id: sessionId,
     pc_id: pcId,
@@ -37,47 +32,36 @@ export function createSession(pcIdInput?: string): {
     status: 'WAITING'
   };
 
+  dbInsertSession(session);
+
   return { session, rawToken };
 }
 
 export function getSessionByToken(token: string): SessionRecord | null {
   const tokenHash = hashToken(token);
-  const stmt = db.prepare('SELECT * FROM sessions WHERE token_hash = ?');
-  const session = stmt.get(tokenHash) as SessionRecord | undefined;
-  return session || null;
+  return dbGetSessionByTokenHash(tokenHash);
 }
 
 export function getSessionById(sessionId: string): SessionRecord | null {
-  const stmt = db.prepare('SELECT * FROM sessions WHERE id = ?');
-  const session = stmt.get(sessionId) as SessionRecord | undefined;
-  return session || null;
+  return dbGetSessionById(sessionId);
 }
 
 export function updateSessionStatus(sessionId: string, status: SessionStatus): void {
-  const stmt = db.prepare('UPDATE sessions SET status = ? WHERE id = ?');
-  stmt.run(status, sessionId);
+  dbUpdateSessionStatus(sessionId, status);
 }
 
 export function getSessionFiles(sessionId: string): FileRecord[] {
-  const stmt = db.prepare('SELECT * FROM files WHERE session_id = ? ORDER BY created_at DESC');
-  return stmt.all(sessionId) as FileRecord[];
+  return dbGetFilesBySessionId(sessionId);
 }
 
 export function getExpiredSessions(): SessionRecord[] {
-  const now = new Date().toISOString();
-  const stmt = db.prepare(`
-    SELECT * FROM sessions 
-    WHERE expires_at <= ? AND status NOT IN ('EXPIRED', 'CLOSED')
-  `);
-  return stmt.all(now) as SessionRecord[];
+  return dbGetExpiredSessions(new Date().toISOString());
 }
 
 export function markSessionExpired(sessionId: string): void {
-  const stmt = db.prepare(`UPDATE sessions SET status = 'EXPIRED' WHERE id = ?`);
-  stmt.run(sessionId);
+  dbMarkSessionExpired(sessionId);
 }
 
 export function deleteSessionRecord(sessionId: string): void {
-  const stmt = db.prepare('DELETE FROM sessions WHERE id = ?');
-  stmt.run(sessionId);
+  dbDeleteSession(sessionId);
 }

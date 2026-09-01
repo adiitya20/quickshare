@@ -1,6 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { db } from '../db/index.js';
+import { 
+  dbInsertFile, 
+  dbGetFileById, 
+  dbDeleteFile, 
+  dbDeleteFilesBySessionId 
+} from '../db/index.js';
 import { generateId } from '../utils/crypto.js';
 import { sanitizeFilename } from '../utils/sanitizer.js';
 import { config } from '../utils/config.js';
@@ -17,22 +22,7 @@ export function createFileRecord(
   const safeOriginalName = sanitizeFilename(originalFilename);
   const now = new Date().toISOString();
 
-  const stmt = db.prepare(`
-    INSERT INTO files (id, session_id, original_filename, stored_filename, mime_type, size, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    fileId,
-    sessionId,
-    safeOriginalName,
-    storedFilename,
-    mimeType,
-    size,
-    now
-  );
-
-  return {
+  const fileRecord: FileRecord = {
     id: fileId,
     session_id: sessionId,
     original_filename: safeOriginalName,
@@ -41,19 +31,21 @@ export function createFileRecord(
     size,
     created_at: now
   };
+
+  dbInsertFile(fileRecord);
+
+  return fileRecord;
 }
 
 export function getFileById(fileId: string): FileRecord | null {
-  const stmt = db.prepare('SELECT * FROM files WHERE id = ?');
-  const record = stmt.get(fileId) as FileRecord | undefined;
-  return record || null;
+  return dbGetFileById(fileId);
 }
 
 export function deleteFile(fileId: string): boolean {
   const record = getFileById(fileId);
   if (!record) return false;
 
-  // Remove physical file
+  // Remove physical file if present
   const filePath = path.join(config.uploadDir, record.session_id, record.stored_filename);
   if (fs.existsSync(filePath)) {
     try {
@@ -63,14 +55,12 @@ export function deleteFile(fileId: string): boolean {
     }
   }
 
-  // Delete DB record
-  const stmt = db.prepare('DELETE FROM files WHERE id = ?');
-  stmt.run(fileId);
+  dbDeleteFile(fileId);
   return true;
 }
 
 export function deleteAllSessionFiles(sessionId: string): void {
-  // Delete all physical files in session folder
+  // Delete all physical files in session folder if present
   const sessionDir = path.join(config.uploadDir, sessionId);
   if (fs.existsSync(sessionDir)) {
     try {
@@ -80,7 +70,5 @@ export function deleteAllSessionFiles(sessionId: string): void {
     }
   }
 
-  // Delete DB file records
-  const stmt = db.prepare('DELETE FROM files WHERE session_id = ?');
-  stmt.run(sessionId);
+  dbDeleteFilesBySessionId(sessionId);
 }
