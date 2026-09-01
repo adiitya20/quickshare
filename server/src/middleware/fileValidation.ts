@@ -2,12 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { config } from '../utils/config.js';
-import { isAllowedExtension, sanitizeFilename } from '../utils/sanitizer.js';
-import { generateId } from '../utils/crypto.js';
-import { getSessionByToken, getSessionFiles } from '../services/sessionService.js';
+import { config } from '../utils/config';
+import { isAllowedExtension, sanitizeFilename } from '../utils/sanitizer';
+import { generateId } from '../utils/crypto';
+import { getSessionByToken, getSessionFiles } from '../services/sessionService';
 
-// Configure Multer storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const session = (req as any).sessionRecord;
@@ -16,7 +15,9 @@ const storage = multer.diskStorage({
     }
     const sessionDir = path.join(config.uploadDir, session.id);
     if (!fs.existsSync(sessionDir)) {
-      fs.mkdirSync(sessionDir, { recursive: true });
+      try {
+        fs.mkdirSync(sessionDir, { recursive: true });
+      } catch (e) {}
     }
     cb(null, sessionDir);
   },
@@ -27,7 +28,6 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter function
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const originalName = file.originalname;
   if (!isAllowedExtension(originalName)) {
@@ -40,13 +40,10 @@ export const uploadMiddleware = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: config.maxFileSizeMB * 1024 * 1024, // Configurable per file limit (20MB)
+    fileSize: config.maxFileSizeMB * 1024 * 1024,
   }
 });
 
-/**
- * Middleware to validate session token and upload quota before parsing files
- */
 export async function validateUploadSession(req: Request, res: Response, next: NextFunction) {
   try {
     const token = req.params.token;
@@ -63,7 +60,6 @@ export async function validateUploadSession(req: Request, res: Response, next: N
       return res.status(410).json({ error: 'This QR session has expired. Please scan the new QR code on the PC.' });
     }
 
-    // Check existing files limit for this session
     const existingFiles = getSessionFiles(session.id);
     if (existingFiles.length >= config.maxSessionFiles) {
       return res.status(400).json({ error: `Session maximum of ${config.maxSessionFiles} files reached.` });

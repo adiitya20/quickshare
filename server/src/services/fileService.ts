@@ -5,11 +5,11 @@ import {
   dbGetFileById, 
   dbDeleteFile, 
   dbDeleteFilesBySessionId 
-} from '../db/index.js';
-import { generateId } from '../utils/crypto.js';
-import { sanitizeFilename } from '../utils/sanitizer.js';
-import { config } from '../utils/config.js';
-import { FileRecord } from '../types/index.js';
+} from '../db';
+import { generateId } from '../utils/crypto';
+import { sanitizeFilename } from '../utils/sanitizer';
+import { config } from '../utils/config';
+import { FileRecord } from '../types';
 
 export function createFileRecord(
   sessionId: string,
@@ -45,7 +45,6 @@ export function deleteFile(fileId: string): boolean {
   const record = getFileById(fileId);
   if (!record) return false;
 
-  // Remove physical file if present
   const filePath = path.join(config.uploadDir, record.session_id, record.stored_filename);
   if (fs.existsSync(filePath)) {
     try {
@@ -60,7 +59,6 @@ export function deleteFile(fileId: string): boolean {
 }
 
 export function deleteAllSessionFiles(sessionId: string): void {
-  // Delete all physical files in session folder if present
   const sessionDir = path.join(config.uploadDir, sessionId);
   if (fs.existsSync(sessionDir)) {
     try {

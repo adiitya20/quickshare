@@ -1,21 +1,16 @@
 import http from 'http';
-import { app } from './app.js';
-import { config } from './utils/config.js';
-import { initDatabase } from './db/index.js';
-import { initSocketServer } from './services/socketService.js';
-import { startCleanupTask, stopCleanupTask } from './services/cleanupService.js';
+import { app } from './app';
+import { config } from './utils/config';
+import { initDatabase } from './db';
+import { initSocketServer } from './services/socketService';
+import { startCleanupTask, stopCleanupTask } from './services/cleanupService';
 
-// 1. Initialize Database & Schema
 initDatabase();
 
-// 2. Create HTTP server & attach Socket.IO
 const server = http.createServer(app);
 initSocketServer(server);
-
-// 3. Start periodic cleanup task for expired sessions
 startCleanupTask();
 
-// 4. Start HTTP Server listening
 server.listen(config.port, () => {
   console.log(`=======================================================`);
   console.log(`🚀 QRPrint Server running on http://localhost:${config.port}`);
@@ -24,7 +19,6 @@ server.listen(config.port, () => {
   console.log(`=======================================================`);
 });
 
-// Graceful shutdown handling
 function gracefulShutdown(signal: string) {
   console.log(`\nReceived ${signal}. Shutting down gracefully...`);
   stopCleanupTask();

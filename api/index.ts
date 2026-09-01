@@ -1,7 +1,6 @@
-import { app } from '../server/src/app.js';
-import { initDatabase } from '../server/src/db/index.js';
+import { app } from '../server/src/app';
+import { initDatabase } from '../server/src/db';
 
-// Initialize Database schema for serverless execution
 try {
   initDatabase();
 } catch (e) {

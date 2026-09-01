@@ -5,19 +5,19 @@ import {
   updateSessionStatus, 
   getSessionFiles, 
   deleteSessionRecord 
-} from '../services/sessionService.js';
-import { deleteAllSessionFiles } from '../services/fileService.js';
+} from '../services/sessionService';
+import { deleteAllSessionFiles } from '../services/fileService';
 import { 
   notifyPhoneConnected, 
   notifySessionClosed, 
   notifySessionExpired 
-} from '../services/socketService.js';
-import { config } from '../utils/config.js';
-import { FileItem } from '../types/index.js';
+} from '../services/socketService';
+import { config } from '../utils/config';
+import { FileItem } from '../types';
 
 export function handleCreateSession(req: Request, res: Response) {
   try {
-    const { pcId } = req.body;
+    const { pcId } = req.body || {};
     const { session, rawToken } = createSession(pcId);
 
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
@@ -34,6 +34,7 @@ export function handleCreateSession(req: Request, res: Response) {
       durationSeconds: config.sessionDurationMinutes * 60
     });
   } catch (error: any) {
+    console.error('handleCreateSession error:', error);
     return res.status(500).json({ error: error.message || 'Failed to create session' });
   }
 }

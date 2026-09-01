@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { handleGetFileContent, handleDeleteSingleFile } from '../controllers/fileController.ts';
+import { handleGetFileContent, handleDeleteSingleFile } from '../controllers/fileController';
 
 const router = Router();
 

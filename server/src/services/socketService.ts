@@ -1,15 +1,15 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
-import { config } from '../utils/config.js';
-import { getSessionByToken, getSessionById } from './sessionService.js';
-import { FileItem } from '../types/index.js';
+import { config } from '../utils/config';
+import { getSessionByToken, getSessionById } from './sessionService';
+import { FileItem } from '../types';
 
 let io: SocketIOServer | null = null;
 
 export function initSocketServer(server: HTTPServer): SocketIOServer {
   io = new SocketIOServer(server, {
     cors: {
-      origin: [config.clientOrigin, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+      origin: '*',
       methods: ['GET', 'POST'],
       credentials: true
     }
@@ -30,9 +30,7 @@ export function initSocketServer(server: HTTPServer): SocketIOServer {
       }
     });
 
-    socket.on('disconnect', () => {
-      // Clean disconnect
-    });
+    socket.on('disconnect', () => {});
   });
 
   return io;

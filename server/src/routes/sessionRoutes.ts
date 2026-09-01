@@ -5,10 +5,10 @@ import {
   handleNotifyPhoneConnected, 
   handleRegenerateSession, 
   handleDeleteSession 
-} from '../controllers/sessionController.ts';
-import { handleUploadFiles, handleGetSessionFiles, handleDeleteAllSessionFiles } from '../controllers/fileController.ts';
-import { sessionCreateLimiter, fileUploadLimiter } from '../middleware/rateLimiter.ts';
-import { validateUploadSession, uploadMiddleware } from '../middleware/fileValidation.ts';
+} from '../controllers/sessionController';
+import { handleUploadFiles, handleGetSessionFiles, handleDeleteAllSessionFiles } from '../controllers/fileController';
+import { sessionCreateLimiter, fileUploadLimiter } from '../middleware/rateLimiter';
+import { validateUploadSession, uploadMiddleware } from '../middleware/fileValidation';
 
 const router = Router();
 
@@ -18,7 +18,6 @@ router.post('/:token/notify-connected', handleNotifyPhoneConnected);
 router.post('/:token/regenerate', handleRegenerateSession);
 router.delete('/:token', handleDeleteSession);
 
-// Session file routes
 router.post(
   '/:token/files',
   fileUploadLimiter,

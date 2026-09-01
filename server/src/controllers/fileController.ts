@@ -6,15 +6,15 @@ import {
   getFileById, 
   deleteFile, 
   deleteAllSessionFiles 
-} from '../services/fileService.js';
+} from '../services/fileService';
 import { 
   getSessionByToken, 
   getSessionFiles, 
   updateSessionStatus 
-} from '../services/sessionService.js';
-import { notifyFilesReceived, notifyFileDeleted } from '../services/socketService.js';
-import { config } from '../utils/config.js';
-import { FileItem } from '../types/index.js';
+} from '../services/sessionService';
+import { notifyFilesReceived, notifyFileDeleted } from '../services/socketService';
+import { config } from '../utils/config';
+import { FileItem } from '../types';
 
 export function handleUploadFiles(req: Request, res: Response) {
   try {
@@ -47,10 +47,8 @@ export function handleUploadFiles(req: Request, res: Response) {
       });
     }
 
-    // Update status to READY
     updateSessionStatus(session.id, 'READY');
 
-    // Get updated total files count for session
     const allFiles = getSessionFiles(session.id);
     const formattedAllFiles: FileItem[] = allFiles.map(f => ({
       id: f.id,
@@ -62,7 +60,6 @@ export function handleUploadFiles(req: Request, res: Response) {
       previewUrl: `/api/files/${f.id}?preview=true`
     }));
 
-    // Emit Socket.IO notification to PC
     notifyFilesReceived(session.id, formattedAllFiles, formattedAllFiles.length);
 
     return res.status(201).json({

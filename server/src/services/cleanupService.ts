@@ -1,7 +1,7 @@
-import { getExpiredSessions, markSessionExpired } from './sessionService.js';
-import { deleteAllSessionFiles } from './fileService.js';
-import { notifySessionExpired } from './socketService.js';
-import { config } from '../utils/config.js';
+import { getExpiredSessions, markSessionExpired } from './sessionService';
+import { deleteAllSessionFiles } from './fileService';
+import { notifySessionExpired } from './socketService';
+import { config } from '../utils/config';
 
 let intervalTimer: NodeJS.Timeout | null = null;
 
@@ -11,11 +11,8 @@ export function purgeExpiredSessionsNow(): number {
 
   for (const session of expiredSessions) {
     try {
-      // 1. Delete physical files from disk & file DB records
       deleteAllSessionFiles(session.id);
-      // 2. Mark session as EXPIRED in DB
       markSessionExpired(session.id);
-      // 3. Notify connected WebSockets
       notifySessionExpired(session.id, 'Session countdown timer expired. Files deleted.');
       count++;
     } catch (err) {
@@ -29,10 +26,8 @@ export function purgeExpiredSessionsNow(): number {
 export function startCleanupTask(): void {
   if (intervalTimer) return;
 
-  // Run immediately on startup
   purgeExpiredSessionsNow();
 
-  // Schedule periodic cleanup
   intervalTimer = setInterval(() => {
     purgeExpiredSessionsNow();
   }, config.cleanupIntervalSeconds * 1000);

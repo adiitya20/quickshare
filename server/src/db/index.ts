@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { config } from '../utils/config.js';
-import { SessionRecord, FileRecord, SessionStatus } from '../types/index.js';
+import { config } from '../utils/config';
+import { SessionRecord, FileRecord, SessionStatus } from '../types';
 
 let sqliteDb: any = null;
 

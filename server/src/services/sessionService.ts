@@ -7,10 +7,10 @@ import {
   dbGetExpiredSessions, 
   dbMarkSessionExpired, 
   dbDeleteSession 
-} from '../db/index.js';
-import { generateSecureToken, hashToken, generateId } from '../utils/crypto.js';
-import { config } from '../utils/config.js';
-import { SessionRecord, FileRecord, SessionStatus } from '../types/index.js';
+} from '../db';
+import { generateSecureToken, hashToken, generateId } from '../utils/crypto';
+import { config } from '../utils/config';
+import { SessionRecord, FileRecord, SessionStatus } from '../types';
 
 export function createSession(pcIdInput?: string): {
   session: SessionRecord;
