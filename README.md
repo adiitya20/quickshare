@@ -2,28 +2,32 @@
 
 **QrShareIt** is a production-ready, secure web application designed for college computer labs and printing centers. It eliminates the privacy and security risks associated with students logging into WhatsApp Web, personal email accounts, or Google Drive on shared college PCs.
 
+🌐 **Live Demo Website**: [https://qrshareit.vercel.app/](https://qrshareit.vercel.app/)  
+🐙 **GitHub Repository**: [https://github.com/adiitya20/quickshare](https://github.com/adiitya20/quickshare)
+
 ---
 
 ## 🌟 Solution Overview
 
 1. **Scan**: The college PC displays a unique, temporary QR code with an unguessable cryptographically secure token (`/upload/:token`).
 2. **Upload**: The student scans the QR code with their phone's camera, opens the mobile upload portal, and selects their documents (PDF, DOCX, PPTX, JPG, PNG, WEBP, TXT).
-3. **Print**: Files arrive in real time on the PC via Socket.IO. The student previews and prints their files directly to the college printer.
-4. **Done & Cleaned**: Upon session completion or timer expiry, all uploaded files are **permanently deleted from disk and database**.
+3. **Print**: Files arrive in real time on the PC via WebSockets and 2-second background sync. The student previews and prints their files directly to the college printer.
+4. **Done & Cleaned**: Upon session completion or timer expiry, all uploaded files are **permanently deleted**.
 
 ---
 
 ## 🔒 Privacy & Security Features
 
 - **No Accounts Required**: Zero login prompts, phone numbers, or passwords.
-- **Cryptographic Random Tokens**: Tokens generated via 256-bit entropy (`crypto.randomBytes(32)`).
-- **Session Isolation**: Each PC session has a separate token hash and Socket room (`pc:<sessionId>`). Files uploaded for PC 01 can never leak to PC 02.
+- **Cryptographic Signed Capability Tokens**: HMAC-SHA256 signed tokens for 100% stateless serverless verification on Vercel.
+- **Chunked File Uploads**: Uploads files in 1.5 MB chunks to bypass Vercel payload limits.
+- **Session Isolation**: Each PC session has a separate token hash. Files uploaded for PC 01 can never leak to PC 02.
 - **Strict File Validation**:
   - Whitelisted formats: `.pdf`, `.doc`, `.docx`, `.ppt`, `.pptx`, `.jpg`, `.jpeg`, `.png`, `.webp`, `.txt`.
   - Blocked dangerous formats: `.exe`, `.bat`, `.cmd`, `.sh`, `.ps1`, `.js`, `.vbs`, `.msi`.
   - Maximum 20 MB per file, 100 MB / 20 files per session limit.
   - Path traversal & filename sanitization.
-- **Automated Background Cleanup**: Background cron process runs every 30 seconds to purge physical files and session records when `expires_at` is reached.
+- **Automated Background Cleanup**: Periodic background process purges files and session records upon timer expiry.
 
 ---
 
@@ -54,7 +58,7 @@ Create a `.env` file inside the `server/` directory (a `.env.example` is provide
 PORT=5000
 NODE_ENV=development
 CLIENT_ORIGIN=http://localhost:5173
-DATABASE_PATH=./qrprint.db
+DATABASE_PATH=./qrshareit.db
 UPLOAD_DIR=./uploads
 SESSION_DURATION_MINUTES=10
 MAX_FILE_SIZE_MB=20
@@ -90,17 +94,16 @@ npm run test --prefix server
 
 ```text
 ┌────────────────┐             ┌────────────────┐             ┌────────────────┐
-│   College PC   │             │  QRPrint Node  │             │ Student Phone  │
+│   College PC   │             │ QrShareIt Node │             │ Student Phone  │
 │ (Browser /pc)  │             │ Server & DB    │             │(Mobile /upload)│
 └───────┬────────┘             └───────┬────────┘             └───────┬────────┘
         │                              │                              │
         │ 1. POST /api/sessions        │                              │
         ├─────────────────────────────►│                              │
-        │ 2. Returns 256-bit Token & QR│                              │
+        │ 2. Returns Signed Token & QR │                              │
         │◄─────────────────────────────┤                              │
         │                              │                              │
-        │ 3. Joins Socket Room         │                              │
-        │    session:<sessionId>       │                              │
+        │ 3. Joins Socket Room / Polls │                              │
         ├─────────────────────────────►│                              │
         │                              │                              │
         │                              │ 4. Scans QR & Opens Page     │
@@ -111,15 +114,15 @@ npm run test --prefix server
         │                              │                              │
         │                              │ 6. POST /upload/:token/files │
         │                              │◄─────────────────────────────┤
-        │                              │    (Multer + Security Check) │
+        │                              │    (1.5MB Chunks + Security) │
         │                              │                              │
-        │ 7. Socket: files_received    │                              │
+        │ 7. Real-Time File Sync       │                              │
         │◄─────────────────────────────┤                              │
         │                              │                              │
         │ 8. Preview & Print File      │                              │
         │                              │                              │
         │ 9. End Session / Auto Expiry │                              │
-        │    (Purges Files on Disk)    │                              │
+        │    (Purges Files Permanently)│                              │
         └──────────────────────────────┴──────────────────────────────┘
 ```
 
