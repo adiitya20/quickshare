@@ -58,7 +58,7 @@ export const Home: React.FC = () => {
               <span>1. Scan QR Code</span>
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Open the QRPrint website on your college computer. A temporary, unique QR code will appear on the screen immediately.
+              Open the QrShareIt website on your college computer. A temporary, unique QR code will appear on the screen immediately.
             </p>
           </div>
 
@@ -98,7 +98,7 @@ export const Home: React.FC = () => {
       </main>
 
       <footer className="bg-white border-t border-slate-200 py-8 mt-12 text-center text-xs text-slate-500">
-        <p>© 2026 QRPrint — College Lab Printing Utility. All rights reserved.</p>
+        <p>© 2026 QrShareIt — College Lab Printing Utility. All rights reserved.</p>
       </footer>
     </div>
   );

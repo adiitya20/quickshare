@@ -26,7 +26,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'QRPrint API', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', service: 'QrShareIt API', timestamp: new Date().toISOString() });
 });
 
 app.use('/api/sessions', sessionRoutes);

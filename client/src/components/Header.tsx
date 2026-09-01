@@ -17,7 +17,7 @@ export const Header: React.FC<HeaderProps> = ({ pcId, isMobile = false }) => {
           </div>
           <div>
             <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-brand-700 to-indigo-800 bg-clip-text text-transparent">
-              QRPrint
+              QrShareIt
             </span>
             <span className="hidden sm:inline-block ml-2 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-brand-700 font-medium border border-blue-100">
               College Lab Printing

@@ -7,7 +7,7 @@ import { createSession } from '../services/sessionService.js';
 
 const request = supertest(app);
 
-describe('QRPrint API & Security Integration Tests', () => {
+describe('QrShareIt API & Security Integration Tests', () => {
   beforeAll(() => {
     initDatabase();
   });

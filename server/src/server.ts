@@ -13,7 +13,7 @@ startCleanupTask();
 
 server.listen(config.port, () => {
   console.log(`=======================================================`);
-  console.log(`🚀 QRPrint Server running on http://localhost:${config.port}`);
+  console.log(`🚀 QrShareIt Server running on http://localhost:${config.port}`);
   console.log(`🔒 Session Duration: ${config.sessionDurationMinutes} minutes`);
   console.log(`🧹 Auto-Cleanup Interval: ${config.cleanupIntervalSeconds} seconds`);
   console.log(`=======================================================`);

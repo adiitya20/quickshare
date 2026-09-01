@@ -1,6 +1,6 @@
-# QRPrint — Login-Free QR Document Transfer & Printing System
+# QrShareIt — Login-Free QR Document Transfer & Printing System
 
-**QRPrint** is a production-ready, secure web application designed for college computer labs and printing centers. It eliminates the privacy and security risks associated with students logging into WhatsApp Web, personal email accounts, or Google Drive on shared college PCs.
+**QrShareIt** is a production-ready, secure web application designed for college computer labs and printing centers. It eliminates the privacy and security risks associated with students logging into WhatsApp Web, personal email accounts, or Google Drive on shared college PCs.
 
 ---
 
