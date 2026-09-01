@@ -4,14 +4,30 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
-    "build": "npm run install:all && npm run build:all",
-    "install:all": "npm install --prefix server && npm install --prefix client",
+    "build": "cd client && npm install && npm run build",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
     "build:all": "npm run build --prefix server && npm run build --prefix client",
-    "build:client": "cd client && npm install && npm run build",
     "start": "npm run start --prefix server",
     "test": "npm run test --prefix server"
   },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "multer": "^1.4.5-lts.1",
+    "qrcode": "^1.5.4",
+    "uuid": "^11.0.5"
+  },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.13.4",
+    "@types/qrcode": "^1.5.5",
+    "@types/uuid": "^10.0.0",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
   }
 }
