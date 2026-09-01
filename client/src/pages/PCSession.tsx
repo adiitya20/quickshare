@@ -6,30 +6,28 @@ import { FilePreviewModal } from '../components/FilePreviewModal.js';
 import { PrivacyBadge } from '../components/PrivacyBadge.js';
 import { 
   createSession, 
-  getSessionInfo, 
   regenerateSession, 
   deleteSingleFile, 
   deleteAllFiles 
 } from '../services/api.js';
 import { getSocket, joinPCSessionRoom } from '../services/socket.js';
 import { SessionData, FileItem, SessionStatus } from '../types/index.js';
-import { Monitor, RefreshCw } from 'lucide-react';
 
 export const PCSession: React.FC = () => {
   const [session, setSession] = useState<SessionData | null>(null);
-  const [pcId, setPcId] = useState<string>('LAB 01 / COMPUTER-04');
   const [status, setStatus] = useState<SessionStatus>('WAITING');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize PC Session
-  const initSession = useCallback(async (customPcId?: string) => {
+  // Initialize a fresh PC Session every time the page loads/mounts
+  const initSession = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await createSession(customPcId || pcId);
+      // Create a fresh unique session
+      const data = await createSession();
       setSession(data);
       setStatus(data.status || 'WAITING');
       setFiles([]);
@@ -39,11 +37,11 @@ export const PCSession: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [pcId]);
+  }, []);
 
   useEffect(() => {
     initSession();
-  }, []);
+  }, [initSession]);
 
   // Setup Socket listeners
   useEffect(() => {
@@ -145,14 +143,7 @@ export const PCSession: React.FC = () => {
 
   const handlePrintAll = () => {
     if (files.length === 0) return;
-    // Open preview of first file or open concatenated preview
     handlePrintFile(files[0]);
-  };
-
-  const handlePcIdChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newId = e.target.value;
-    setPcId(newId);
-    initSession(newId);
   };
 
   return (
@@ -160,39 +151,6 @@ export const PCSession: React.FC = () => {
       <Header pcId={session?.pcId} />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
-        {/* Top PC Settings Bar */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-brand-50 text-brand-600 border border-brand-100">
-              <Monitor className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-slate-500 block uppercase tracking-wider">College PC Location</span>
-              <select
-                value={pcId}
-                onChange={handlePcIdChange}
-                className="font-bold text-slate-900 text-sm bg-transparent border-0 p-0 focus:ring-0 cursor-pointer"
-              >
-                <option value="LAB 01 / COMPUTER-04">LAB 01 / COMPUTER-04</option>
-                <option value="LAB 01 / COMPUTER-12">LAB 01 / COMPUTER-12</option>
-                <option value="LAB 02 / COMPUTER-08">LAB 02 / COMPUTER-08</option>
-                <option value="LIBRARY / PC-02">LIBRARY / PC-02</option>
-                <option value="MAIN HALL / PC-15">MAIN HALL / PC-15</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={handleRegenerate}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>New Printing Session</span>
-            </button>
-          </div>
-        </div>
-
         {error && (
           <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium">
             {error}
@@ -206,7 +164,7 @@ export const PCSession: React.FC = () => {
             {loading || !session ? (
               <div className="bg-white rounded-2xl p-12 shadow-xl border border-slate-200 text-center flex flex-col items-center justify-center min-h-[420px]">
                 <div className="w-12 h-12 rounded-full border-4 border-brand-200 border-t-brand-600 animate-spin mb-4" />
-                <p className="text-sm font-semibold text-slate-600">Generating Secure QR Session...</p>
+                <p className="text-sm font-semibold text-slate-600">Generating Secure Unique QR Session...</p>
               </div>
             ) : (
               <QRDisplay

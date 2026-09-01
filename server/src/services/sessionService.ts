@@ -7,10 +7,10 @@ export function createSession(pcIdInput?: string): {
   session: SessionRecord;
   rawToken: string;
 } {
-  const pcId = pcIdInput || `LAB-01 / PC-${Math.floor(Math.random() * 90 + 10)}`;
   const rawToken = generateSecureToken();
   const tokenHash = hashToken(rawToken);
   const sessionId = generateId();
+  const pcId = pcIdInput || `PC-${Math.floor(1000 + Math.random() * 9000)}`;
   const now = new Date();
   const expiresAt = new Date(now.getTime() + config.sessionDurationMinutes * 60 * 1000);
 
