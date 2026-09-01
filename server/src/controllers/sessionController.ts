@@ -20,7 +20,9 @@ export function handleCreateSession(req: Request, res: Response) {
     const { pcId } = req.body;
     const { session, rawToken } = createSession(pcId);
 
-    const clientUrl = config.clientOrigin;
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const clientUrl = req.headers.origin || `${protocol}://${host}` || config.clientOrigin;
     const qrUrl = `${clientUrl}/upload/${rawToken}`;
 
     return res.status(201).json({
@@ -109,17 +111,17 @@ export function handleRegenerateSession(req: Request, res: Response) {
     const oldSession = getSessionByToken(token);
 
     if (oldSession) {
-      // Clean up old session files & close session
       deleteAllSessionFiles(oldSession.id);
       updateSessionStatus(oldSession.id, 'CLOSED');
       notifySessionClosed(oldSession.id, 'New QR code generated on PC');
     }
 
-    // Create fresh session with optional old pcId
     const pcId = oldSession ? oldSession.pc_id : undefined;
     const { session, rawToken } = createSession(pcId);
 
-    const clientUrl = config.clientOrigin;
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const clientUrl = req.headers.origin || `${protocol}://${host}` || config.clientOrigin;
     const qrUrl = `${clientUrl}/upload/${rawToken}`;
 
     return res.status(201).json({
@@ -144,7 +146,6 @@ export function handleDeleteSession(req: Request, res: Response) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Delete files and close session
     deleteAllSessionFiles(session.id);
     updateSessionStatus(session.id, 'CLOSED');
     notifySessionClosed(session.id, 'Session ended by PC user');
