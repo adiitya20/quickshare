@@ -15,7 +15,11 @@ import {
   AlertTriangle, 
   Plus, 
   Lock, 
-  Smartphone 
+  Smartphone,
+  MessageSquare,
+  FolderDown,
+  Share2,
+  HelpCircle
 } from 'lucide-react';
 
 export const MobileUpload: React.FC = () => {
@@ -29,8 +33,10 @@ export const MobileUpload: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [initError, setInitError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showWaGuide, setShowWaGuide] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const whatsappFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -195,7 +201,7 @@ export const MobileUpload: React.FC = () => {
           </div>
         )}
 
-        {/* Hidden File Input */}
+        {/* Hidden File Inputs */}
         <input
           type="file"
           ref={fileInputRef}
@@ -205,18 +211,63 @@ export const MobileUpload: React.FC = () => {
           className="hidden"
         />
 
-        {/* Select Files Button & File Format Badges */}
-        <div className="bg-white rounded-2xl p-6 shadow-md border border-slate-200/80 space-y-4 text-center">
+        <input
+          type="file"
+          ref={whatsappFileInputRef}
+          onChange={handleFileSelect}
+          multiple
+          accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt"
+          className="hidden"
+        />
+
+        {/* Select Files & WhatsApp Shortcut Buttons */}
+        <div className="bg-white rounded-2xl p-6 shadow-md border border-slate-200/80 space-y-3 text-center">
+          {/* Main Select Files */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             className="w-full py-4 px-6 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-base shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
           >
             <Plus className="w-5 h-5" />
-            <span>+ Select Files</span>
+            <span>+ Select Files from Phone</span>
           </button>
 
-          <p className="text-[11px] text-slate-400 font-medium">
+          {/* Option 3: WhatsApp Document Folder Shortcut */}
+          <button
+            onClick={() => whatsappFileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
+          >
+            <FolderDown className="w-4 h-4" />
+            <span>📁 Pick File Received on WhatsApp</span>
+          </button>
+
+          {/* Collapsible Helper: How to share from WhatsApp */}
+          <div className="pt-2">
+            <button
+              onClick={() => setShowWaGuide(!showWaGuide)}
+              className="text-xs text-slate-500 hover:text-brand-600 font-semibold inline-flex items-center space-x-1"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>{showWaGuide ? 'Hide WhatsApp Share Guide' : '💡 How to send files received on WhatsApp?'}</span>
+            </button>
+
+            {showWaGuide && (
+              <div className="mt-3 p-4 rounded-xl bg-slate-50 border border-slate-200 text-left text-xs text-slate-600 space-y-2 animate-fade-in">
+                <p className="font-bold text-slate-900">2 Easy Ways for WhatsApp Documents:</p>
+                <div className="space-y-1.5 text-[11px]">
+                  <p className="font-medium text-emerald-800">
+                    <strong>Way 1 (Direct Shortcut):</strong> Tap <strong>"📁 Pick File Received on WhatsApp"</strong> above ➔ Look for <em>Downloads</em> or <em>WhatsApp Documents</em> folder.
+                  </p>
+                  <p className="font-medium text-brand-800">
+                    <strong>Way 2 (Share Menu):</strong> In WhatsApp, open the document ➔ Tap <strong>Share</strong> icon ➔ Choose <strong>QrShareIt</strong> (or Save to Files).
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <p className="text-[11px] text-slate-400 font-medium pt-1">
             Supported formats: PDF, DOC, DOCX, PPT, PPTX, JPG, PNG, WEBP, TXT
           </p>
         </div>

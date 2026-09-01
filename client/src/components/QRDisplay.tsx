@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { SessionStatusIndicator } from './SessionStatusIndicator.js';
 import { SessionStatus } from '../types/index.js';
-import { RefreshCw, Clock, Monitor, Copy, Check, MessageSquare, QrCode, ExternalLink, Send, Info } from 'lucide-react';
+import { RefreshCw, Clock, Monitor, Copy, Check, MessageSquare, QrCode, ExternalLink, Send, Info, Share2, FolderDown } from 'lucide-react';
 import { simulateWhatsappForward } from '../services/api.js';
 
 interface QRDisplayProps {
@@ -114,7 +114,7 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({
           }`}
         >
           <MessageSquare className="w-4 h-4" />
-          <span>Forward via WhatsApp</span>
+          <span>WhatsApp Easy Share</span>
         </button>
       </div>
 
@@ -157,21 +157,21 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({
           </div>
         </>
       ) : (
-        /* WhatsApp Direct Forwarding Mode */
+        /* WhatsApp Direct Sharing Mode */
         <div className="w-full my-2 space-y-4 text-left bg-emerald-50/50 p-5 rounded-2xl border border-emerald-200/80">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 text-emerald-800 font-extrabold text-sm">
               <MessageSquare className="w-4 h-4 text-emerald-600" />
-              <span>WhatsApp Direct Forward</span>
+              <span>WhatsApp Instant Shortcuts</span>
             </div>
             <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-              No PC Login
+              Zero Login
             </span>
           </div>
 
           {/* 4-Digit Session PIN */}
           <div className="bg-white p-4 rounded-xl border border-emerald-200 text-center space-y-1 shadow-sm">
-            <p className="text-[11px] text-slate-500 font-medium">Session WhatsApp PIN Code</p>
+            <p className="text-[11px] text-slate-500 font-medium">Session PIN Code</p>
             <div className="flex items-center justify-center space-x-3">
               <span className="text-3xl font-black tracking-widest text-slate-900 font-mono bg-slate-100 px-4 py-1 rounded-lg border border-slate-200">
                 {pin}
@@ -186,38 +186,27 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({
             </div>
           </div>
 
-          {/* Step Instructions */}
-          <div className="text-xs text-slate-600 space-y-2 pl-1">
-            <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3 text-[11px] text-amber-900 space-y-1">
-              <div className="flex items-center space-x-1.5 font-bold text-amber-950">
-                <Info className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                <span>Twilio Sandbox Notice</span>
-              </div>
-              <p className="leading-relaxed">
-                If using Twilio Sandbox (+1 415 523 8886), first send <strong>join &lt;your-sandbox-name&gt;</strong> (provided in your Twilio console) once, then send <strong>CONNECT {pin}</strong>!
+          {/* 2 Easy WhatsApp Features */}
+          <div className="text-xs text-slate-700 space-y-2.5">
+            <div className="bg-white p-3 rounded-xl border border-emerald-200 space-y-1">
+              <p className="font-extrabold text-emerald-900 flex items-center space-x-1.5 text-xs">
+                <FolderDown className="w-4 h-4 text-emerald-600" />
+                <span>1. WhatsApp Document Picker (1-Click)</span>
+              </p>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Scan QR code with phone camera ➔ Tap <strong>"📁 Pick File Received on WhatsApp"</strong> to browse downloaded files instantly.
               </p>
             </div>
 
-            <p className="font-semibold text-slate-800 pt-1">How to send via WhatsApp:</p>
-            <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-slate-600">
-              <li>Open WhatsApp on your phone and open any chat containing your document.</li>
-              <li>Forward the document or image to <strong>QrShareIt WhatsApp Bot</strong>.</li>
-              <li>Send message/caption <strong>CONNECT {pin}</strong>.</li>
-            </ol>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="pt-2 flex flex-col sm:flex-row gap-2">
-            <a
-              href={defaultWaLink}
-              target="_blank"
-              rel="noreferrer"
-              className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md transition-all text-center"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>Open QrShareIt Bot</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+            <div className="bg-white p-3 rounded-xl border border-emerald-200 space-y-1">
+              <p className="font-extrabold text-brand-900 flex items-center space-x-1.5 text-xs">
+                <Share2 className="w-4 h-4 text-brand-600" />
+                <span>2. Share Menu Integration</span>
+              </p>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                In WhatsApp, open any file ➔ Tap <strong>Share</strong> ➔ Select <strong>QrShareIt</strong> to send directly to this PC!
+              </p>
+            </div>
           </div>
 
           {/* Quick Simulation Input for Instant Web Test */}
