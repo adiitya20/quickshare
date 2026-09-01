@@ -6,6 +6,7 @@ import { FilePreviewModal } from '../components/FilePreviewModal.js';
 import { PrivacyBadge } from '../components/PrivacyBadge.js';
 import { 
   createSession, 
+  getSessionInfo,
   regenerateSession, 
   deleteSingleFile, 
   deleteAllFiles 
@@ -43,7 +44,7 @@ export const PCSession: React.FC = () => {
     initSession();
   }, [initSession]);
 
-  // Setup Socket listeners
+  // Setup Socket listeners for instant local WebSocket sync
   useEffect(() => {
     if (!session) return;
 
@@ -84,6 +85,34 @@ export const PCSession: React.FC = () => {
       socket.off('session_closed', handleSessionClosed);
     };
   }, [session]);
+
+  // Real-time polling fallback for Vercel Serverless Function compatibility (polls every 2 seconds)
+  useEffect(() => {
+    if (!session || status === 'EXPIRED' || status === 'CLOSED') return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const updated = await getSessionInfo(session.token);
+        if (updated) {
+          if (updated.files && Array.isArray(updated.files)) {
+            const fetchedFiles = updated.files;
+            setFiles((prevFiles) => {
+              const currentJson = JSON.stringify(prevFiles);
+              const fetchedJson = JSON.stringify(fetchedFiles);
+              return currentJson === fetchedJson ? prevFiles : fetchedFiles;
+            });
+          }
+          if (updated.status && updated.status !== status) {
+            setStatus(updated.status);
+          }
+        }
+      } catch (e) {
+        // Quietly ignore network glitches during background polling
+      }
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, [session, status]);
 
   const handleRegenerate = async () => {
     if (!session) return;
