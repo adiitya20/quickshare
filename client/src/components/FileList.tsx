@@ -10,7 +10,8 @@ import {
   Trash2, 
   Eye, 
   CheckCircle,
-  Inbox
+  Inbox,
+  RefreshCw
 } from 'lucide-react';
 
 interface FileListProps {
@@ -20,6 +21,8 @@ interface FileListProps {
   onDelete: (fileId: string) => void;
   onPrintAll: () => void;
   onDeleteAll: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const FileList: React.FC<FileListProps> = ({
@@ -28,7 +31,9 @@ export const FileList: React.FC<FileListProps> = ({
   onPrint,
   onDelete,
   onPrintAll,
-  onDeleteAll
+  onDeleteAll,
+  onRefresh,
+  isRefreshing = false
 }) => {
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -70,25 +75,40 @@ export const FileList: React.FC<FileListProps> = ({
           <p className="text-xs text-slate-500 mt-1">Files sent from connected phone appear here in real time</p>
         </div>
 
-        {files.length > 0 && (
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2">
+          {/* Manual Refresh Button for Received Files */}
+          {onRefresh && (
             <button
-              onClick={onPrintAll}
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all active:scale-95"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors disabled:opacity-50 active:scale-95"
+              title="Refresh received files list"
             >
-              <Printer className="w-4 h-4" />
-              <span>Print All ({files.length})</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-brand-600' : 'text-slate-600'}`} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh Files'}</span>
             </button>
+          )}
 
-            <button
-              onClick={onDeleteAll}
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold border border-rose-200 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Delete All</span>
-            </button>
-          </div>
-        )}
+          {files.length > 0 && (
+            <>
+              <button
+                onClick={onPrintAll}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all active:scale-95"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print All ({files.length})</span>
+              </button>
+
+              <button
+                onClick={onDeleteAll}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold border border-rose-200 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete All</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -99,9 +119,19 @@ export const FileList: React.FC<FileListProps> = ({
               <Inbox className="w-8 h-8" />
             </div>
             <h3 className="text-base font-bold text-slate-800">Waiting for files...</h3>
-            <p className="text-xs text-slate-500 max-w-sm mt-1">
+            <p className="text-xs text-slate-500 max-w-sm mt-1 mb-4">
               Scan the QR code on the left with your phone to upload PDFs, Word docs, photos, or text notes directly to this PC.
             </p>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 text-xs font-bold transition-all active:scale-95"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>{isRefreshing ? 'Checking for sent files...' : 'Check / Refresh Received Files'}</span>
+              </button>
+            )}
           </div>
         ) : (
           <table className="w-full text-left text-xs sm:text-sm">

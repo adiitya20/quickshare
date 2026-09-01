@@ -20,6 +20,7 @@ export const PCSession: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshingFiles, setIsRefreshingFiles] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Initialize a fresh PC Session every time the page loads/mounts
@@ -113,6 +114,27 @@ export const PCSession: React.FC = () => {
 
     return () => clearInterval(pollInterval);
   }, [session, status]);
+
+  // Dedicated Refresh Handler for Received Files Section Only (without reloading page or changing QR)
+  const handleManualRefreshFiles = async () => {
+    if (!session) return;
+    setIsRefreshingFiles(true);
+    try {
+      const updated = await getSessionInfo(session.token);
+      if (updated) {
+        if (updated.files && Array.isArray(updated.files)) {
+          setFiles(updated.files);
+        }
+        if (updated.status && updated.status !== status) {
+          setStatus(updated.status);
+        }
+      }
+    } catch (err: any) {
+      console.error('Manual file refresh error:', err);
+    } finally {
+      setIsRefreshingFiles(false);
+    }
+  };
 
   const handleRegenerate = async () => {
     if (!session) return;
@@ -216,6 +238,8 @@ export const PCSession: React.FC = () => {
               onDelete={handleDeleteFile}
               onPrintAll={handlePrintAll}
               onDeleteAll={handleDeleteAll}
+              onRefresh={handleManualRefreshFiles}
+              isRefreshing={isRefreshingFiles}
             />
           </div>
         </div>
