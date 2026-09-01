@@ -5,7 +5,7 @@ dotenv.config();
 
 const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true';
 
-const defaultDbPath = isVercel ? '/tmp/qrprint.db' : './qrprint.db';
+const defaultDbPath = isVercel ? '/tmp/qrshareit.db' : './qrshareit.db';
 const defaultUploadDir = isVercel ? '/tmp/uploads' : './uploads';
 
 export const config = {
@@ -19,4 +19,6 @@ export const config = {
   maxSessionFiles: parseInt(process.env.MAX_SESSION_FILES || '20', 10),
   maxSessionTotalSizeMB: parseInt(process.env.MAX_SESSION_TOTAL_SIZE_MB || '100', 10),
   cleanupIntervalSeconds: parseInt(process.env.CLEANUP_INTERVAL_SECONDS || '30', 10),
+  whatsappBotNumber: process.env.WHATSAPP_BOT_NUMBER || '+14155238886',
+  whatsappSandboxKeyword: process.env.WHATSAPP_SANDBOX_KEYWORD || '',
 };

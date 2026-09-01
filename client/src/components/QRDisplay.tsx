@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { SessionStatusIndicator } from './SessionStatusIndicator.js';
 import { SessionStatus } from '../types/index.js';
-import { RefreshCw, Clock, Monitor, Copy, Check, MessageSquare, QrCode, ExternalLink, Send } from 'lucide-react';
+import { RefreshCw, Clock, Monitor, Copy, Check, MessageSquare, QrCode, ExternalLink, Send, Info } from 'lucide-react';
 import { simulateWhatsappForward } from '../services/api.js';
 
 interface QRDisplayProps {
@@ -83,7 +83,6 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({
   };
 
   const isExpired = timeLeft === 0 || status === 'EXPIRED' || status === 'CLOSED';
-
   const defaultWaLink = whatsappUrl || `https://wa.me/14155238886?text=CONNECT%20${pin}`;
 
   return (
@@ -188,10 +187,20 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({
           </div>
 
           {/* Step Instructions */}
-          <div className="text-xs text-slate-600 space-y-1.5 pl-1">
-            <p className="font-semibold text-slate-800">How to send via WhatsApp:</p>
-            <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-600">
-              <li>Open WhatsApp on your phone and open any chat with your document.</li>
+          <div className="text-xs text-slate-600 space-y-2 pl-1">
+            <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3 text-[11px] text-amber-900 space-y-1">
+              <div className="flex items-center space-x-1.5 font-bold text-amber-950">
+                <Info className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                <span>Twilio Sandbox Notice</span>
+              </div>
+              <p className="leading-relaxed">
+                If using Twilio Sandbox (+1 415 523 8886), first send <strong>join &lt;your-sandbox-name&gt;</strong> (provided in your Twilio console) once, then send <strong>CONNECT {pin}</strong>!
+              </p>
+            </div>
+
+            <p className="font-semibold text-slate-800 pt-1">How to send via WhatsApp:</p>
+            <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-slate-600">
+              <li>Open WhatsApp on your phone and open any chat containing your document.</li>
               <li>Forward the document or image to <strong>QrShareIt WhatsApp Bot</strong>.</li>
               <li>Send message/caption <strong>CONNECT {pin}</strong>.</li>
             </ol>

@@ -20,8 +20,6 @@ function extractStringParam(param: string | string[] | undefined): string {
   return param || '';
 }
 
-const WHATSAPP_BOT_NUMBER = process.env.WHATSAPP_BOT_NUMBER || '+14155238886';
-
 export function handleCreateSession(req: Request, res: Response) {
   try {
     const { pcId } = req.body || {};
@@ -35,7 +33,12 @@ export function handleCreateSession(req: Request, res: Response) {
     const host = extractStringParam(fwdHost) || req.get('host');
     const clientUrl = extractStringParam(originHeader) || `${protocol}://${host}` || config.clientOrigin;
     const qrUrl = `${clientUrl}/upload/${rawToken}`;
-    const whatsappUrl = `https://wa.me/${WHATSAPP_BOT_NUMBER.replace(/\+/g, '')}?text=CONNECT%20${session.pin}`;
+    
+    const botNum = config.whatsappBotNumber.replace(/\+/g, '');
+    const prefillMsg = config.whatsappSandboxKeyword 
+      ? `${config.whatsappSandboxKeyword}` 
+      : `CONNECT ${session.pin}`;
+    const whatsappUrl = `https://wa.me/${botNum}?text=${encodeURIComponent(prefillMsg)}`;
 
     return res.status(201).json({
       sessionId: session.id,
@@ -44,7 +47,7 @@ export function handleCreateSession(req: Request, res: Response) {
       token: rawToken,
       qrUrl,
       whatsappUrl,
-      whatsappBotNumber: WHATSAPP_BOT_NUMBER,
+      whatsappBotNumber: config.whatsappBotNumber,
       expiresAt: session.expires_at,
       durationSeconds: config.sessionDurationMinutes * 60
     });
@@ -144,7 +147,12 @@ export function handleRegenerateSession(req: Request, res: Response) {
     const host = extractStringParam(fwdHost) || req.get('host');
     const clientUrl = extractStringParam(originHeader) || `${protocol}://${host}` || config.clientOrigin;
     const qrUrl = `${clientUrl}/upload/${rawToken}`;
-    const whatsappUrl = `https://wa.me/${WHATSAPP_BOT_NUMBER.replace(/\+/g, '')}?text=CONNECT%20${session.pin}`;
+    
+    const botNum = config.whatsappBotNumber.replace(/\+/g, '');
+    const prefillMsg = config.whatsappSandboxKeyword 
+      ? `${config.whatsappSandboxKeyword}` 
+      : `CONNECT ${session.pin}`;
+    const whatsappUrl = `https://wa.me/${botNum}?text=${encodeURIComponent(prefillMsg)}`;
 
     return res.status(201).json({
       sessionId: session.id,
@@ -153,7 +161,7 @@ export function handleRegenerateSession(req: Request, res: Response) {
       token: rawToken,
       qrUrl,
       whatsappUrl,
-      whatsappBotNumber: WHATSAPP_BOT_NUMBER,
+      whatsappBotNumber: config.whatsappBotNumber,
       expiresAt: session.expires_at,
       durationSeconds: config.sessionDurationMinutes * 60
     });
