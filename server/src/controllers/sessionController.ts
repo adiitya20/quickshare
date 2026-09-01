@@ -1,0 +1,156 @@
+import { Request, Response } from 'express';
+import { 
+  createSession, 
+  getSessionByToken, 
+  updateSessionStatus, 
+  getSessionFiles, 
+  deleteSessionRecord 
+} from '../services/sessionService.js';
+import { deleteAllSessionFiles } from '../services/fileService.js';
+import { 
+  notifyPhoneConnected, 
+  notifySessionClosed, 
+  notifySessionExpired 
+} from '../services/socketService.js';
+import { config } from '../utils/config.js';
+import { FileItem } from '../types/index.js';
+
+export function handleCreateSession(req: Request, res: Response) {
+  try {
+    const { pcId } = req.body;
+    const { session, rawToken } = createSession(pcId);
+
+    const clientUrl = config.clientOrigin;
+    const qrUrl = `${clientUrl}/upload/${rawToken}`;
+
+    return res.status(201).json({
+      sessionId: session.id,
+      pcId: session.pc_id,
+      token: rawToken,
+      qrUrl,
+      expiresAt: session.expires_at,
+      durationSeconds: config.sessionDurationMinutes * 60
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to create session' });
+  }
+}
+
+export function handleGetSessionInfo(req: Request, res: Response) {
+  try {
+    const { token } = req.params;
+    const session = getSessionByToken(token);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const now = new Date();
+    const isExpired = new Date(session.expires_at) <= now || session.status === 'EXPIRED' || session.status === 'CLOSED';
+
+    if (isExpired && session.status !== 'EXPIRED' && session.status !== 'CLOSED') {
+      updateSessionStatus(session.id, 'EXPIRED');
+      deleteAllSessionFiles(session.id);
+      notifySessionExpired(session.id);
+    }
+
+    const rawFiles = getSessionFiles(session.id);
+    const files: FileItem[] = rawFiles.map(f => ({
+      id: f.id,
+      originalName: f.original_filename,
+      mimeType: f.mime_type,
+      size: f.size,
+      createdAt: f.created_at,
+      downloadUrl: `/api/files/${f.id}`,
+      previewUrl: `/api/files/${f.id}?preview=true`
+    }));
+
+    return res.json({
+      sessionId: session.id,
+      pcId: session.pc_id,
+      expiresAt: session.expires_at,
+      status: isExpired ? 'EXPIRED' : session.status,
+      isExpired,
+      files
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to fetch session details' });
+  }
+}
+
+export function handleNotifyPhoneConnected(req: Request, res: Response) {
+  try {
+    const { token } = req.params;
+    const session = getSessionByToken(token);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (new Date(session.expires_at) <= new Date() || session.status === 'EXPIRED' || session.status === 'CLOSED') {
+      return res.status(410).json({ error: 'Session expired' });
+    }
+
+    if (session.status === 'WAITING') {
+      updateSessionStatus(session.id, 'CONNECTED');
+    }
+
+    notifyPhoneConnected(session.id, session.pc_id);
+
+    return res.json({ success: true, pcId: session.pc_id });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to notify connection' });
+  }
+}
+
+export function handleRegenerateSession(req: Request, res: Response) {
+  try {
+    const { token } = req.params;
+    const oldSession = getSessionByToken(token);
+
+    if (oldSession) {
+      // Clean up old session files & close session
+      deleteAllSessionFiles(oldSession.id);
+      updateSessionStatus(oldSession.id, 'CLOSED');
+      notifySessionClosed(oldSession.id, 'New QR code generated on PC');
+    }
+
+    // Create fresh session with optional old pcId
+    const pcId = oldSession ? oldSession.pc_id : undefined;
+    const { session, rawToken } = createSession(pcId);
+
+    const clientUrl = config.clientOrigin;
+    const qrUrl = `${clientUrl}/upload/${rawToken}`;
+
+    return res.status(201).json({
+      sessionId: session.id,
+      pcId: session.pc_id,
+      token: rawToken,
+      qrUrl,
+      expiresAt: session.expires_at,
+      durationSeconds: config.sessionDurationMinutes * 60
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to regenerate session' });
+  }
+}
+
+export function handleDeleteSession(req: Request, res: Response) {
+  try {
+    const { token } = req.params;
+    const session = getSessionByToken(token);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Delete files and close session
+    deleteAllSessionFiles(session.id);
+    updateSessionStatus(session.id, 'CLOSED');
+    notifySessionClosed(session.id, 'Session ended by PC user');
+
+    return res.json({ success: true, message: 'Session closed and all files permanently deleted.' });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to end session' });
+  }
+}

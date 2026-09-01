@@ -1,0 +1,299 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { Header } from '../components/Header.js';
+import { getSessionInfo, notifyPhoneConnected, uploadFiles } from '../services/api.js';
+import { SessionData, FileItem } from '../types/index.js';
+import { 
+  UploadCloud, 
+  FileText, 
+  Image as ImageIcon, 
+  FileCode, 
+  FileSpreadsheet, 
+  File, 
+  X, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Plus, 
+  Lock, 
+  Smartphone 
+} from 'lucide-react';
+
+export const MobileUpload: React.FC = () => {
+  const { token } = useParams<{ token: string }>();
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
+  const [uploadedFiles, setUploadedFiles] = useState<FileItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      setError('Invalid upload link or missing token.');
+      setLoading(false);
+      return;
+    }
+
+    const initMobileUpload = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const sessionData = await getSessionInfo(token);
+        setSession(sessionData);
+
+        if (sessionData.isExpired) {
+          setError('This QR code session has expired. Please scan the new QR code displayed on the computer.');
+        } else {
+          // Notify PC socket that phone has connected
+          await notifyPhoneConnected(token).catch(() => {});
+        }
+      } catch (err: any) {
+        setError(err.message || 'This QR code has expired or is invalid. Please scan a new QR code.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initMobileUpload();
+  }, [token]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      
+      // Filter blocked extensions client side as early check
+      const blockedExts = ['.exe', '.bat', '.cmd', '.sh', '.ps1', '.js', '.vbs', '.msi'];
+      const validFiles = newFiles.filter((f) => {
+        const ext = `.${f.name.split('.').pop()?.toLowerCase()}`;
+        return !blockedExts.includes(ext);
+      });
+
+      if (validFiles.length < newFiles.length) {
+        alert('Executable files (.exe, .js, .bat) are blocked for security reasons.');
+      }
+
+      setSelectedFiles((prev) => [...prev, ...validFiles]);
+      setUploadSuccess(false);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpload = async () => {
+    if (!token || selectedFiles.length === 0) return;
+
+    setUploading(true);
+    setUploadProgress(0);
+    setError(null);
+
+    try {
+      const result = await uploadFiles(token, selectedFiles, (percent) => {
+        setUploadProgress(percent);
+      });
+
+      setUploadedFiles(result.files);
+      setUploadSuccess(true);
+      setSelectedFiles([]);
+    } catch (err: any) {
+      setError(err.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getFileIcon = (filename: string) => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return <FileText className="w-5 h-5 text-rose-600" />;
+    if (['jpg', 'jpeg', 'png', 'webp'].includes(ext || '')) return <ImageIcon className="w-5 h-5 text-indigo-600" />;
+    if (['doc', 'docx'].includes(ext || '')) return <FileText className="w-5 h-5 text-blue-600" />;
+    if (['ppt', 'pptx'].includes(ext || '')) return <FileSpreadsheet className="w-5 h-5 text-amber-600" />;
+    if (ext === 'txt') return <FileCode className="w-5 h-5 text-emerald-600" />;
+    return <File className="w-5 h-5 text-slate-500" />;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 rounded-full border-4 border-brand-200 border-t-brand-600 animate-spin mb-4" />
+        <p className="font-semibold text-slate-700 text-sm">Connecting to PC Session...</p>
+      </div>
+    );
+  }
+
+  if (error || !session) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Header isMobile />
+        <main className="flex-1 max-w-md mx-auto px-4 py-12 flex items-center justify-center w-full">
+          <div className="bg-white rounded-2xl p-6 shadow-xl border border-slate-200 text-center w-full space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-100">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-extrabold text-slate-900">QR Code Expired</h2>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {error || 'This QR token is no longer active.'}
+            </p>
+            <div className="pt-2 text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              Please check the college PC screen and scan the newly generated QR code.
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      <Header pcId={session.pcId} isMobile />
+
+      <main className="flex-1 max-w-lg mx-auto px-4 py-6 w-full space-y-6">
+        {/* Mobile Header Banner */}
+        <div className="bg-white rounded-2xl p-6 shadow-md border border-slate-200/80 text-center space-y-2">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Connected to PC</span>
+          </div>
+
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Send Files to PC</h1>
+          <p className="text-xs text-slate-500">
+            Target PC: <strong className="text-slate-900">{session.pcId}</strong>
+          </p>
+        </div>
+
+        {/* Success Alert */}
+        {uploadSuccess && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-emerald-800 space-y-2 text-center animate-fade-in shadow-sm">
+            <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
+            <h3 className="font-extrabold text-base">Files successfully sent to PC ✓</h3>
+            <p className="text-xs text-emerald-700">
+              Your uploaded documents are now ready to print on <strong>{session.pcId}</strong>.
+            </p>
+          </div>
+        )}
+
+        {/* Hidden File Input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          multiple
+          accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt"
+          className="hidden"
+        />
+
+        {/* Select Files Button & File Format Badges */}
+        <div className="bg-white rounded-2xl p-6 shadow-md border border-slate-200/80 space-y-4 text-center">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full py-4 px-6 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-base shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
+          >
+            <Plus className="w-5 h-5" />
+            <span>+ Select Files</span>
+          </button>
+
+          <p className="text-[11px] text-slate-400 font-medium">
+            Supported formats: PDF, DOC, DOCX, PPT, PPTX, JPG, PNG, WEBP, TXT
+          </p>
+        </div>
+
+        {/* Queue of Selected Files */}
+        {selectedFiles.length > 0 && (
+          <div className="bg-white rounded-2xl p-5 shadow-md border border-slate-200/80 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-sm">
+                Selected Files ({selectedFiles.length})
+              </h3>
+              <button
+                onClick={() => setSelectedFiles([])}
+                className="text-xs text-rose-600 hover:underline font-semibold"
+              >
+                Clear all
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {selectedFiles.map((file, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                >
+                  <div className="flex items-center space-x-3 min-w-0 pr-2">
+                    <div className="p-2 rounded-lg bg-white border border-slate-200 shrink-0">
+                      {getFileIcon(file.name)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900 truncate" title={file.name}>
+                        {file.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-mono">
+                        {formatFileSize(file.size)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleRemoveFile(idx)}
+                    disabled={uploading}
+                    className="p-1 rounded-lg text-slate-400 hover:text-rose-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Upload Progress Bar */}
+            {uploading && (
+              <div className="space-y-2 pt-2">
+                <div className="flex justify-between text-xs font-semibold text-slate-700">
+                  <span>Uploading to PC...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-brand-600 transition-all duration-300 rounded-full"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Upload CTA */}
+            <button
+              onClick={handleUpload}
+              disabled={uploading}
+              className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
+            >
+              <UploadCloud className="w-4 h-4" />
+              <span>{uploading ? 'Transferring Files...' : 'Upload Files to PC'}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Mobile Security Footer */}
+        <div className="bg-slate-900 text-slate-200 rounded-2xl p-5 text-xs space-y-2 shadow-lg border border-slate-800">
+          <div className="flex items-center space-x-2 text-emerald-400 font-bold">
+            <Lock className="w-4 h-4" />
+            <span>Privacy Guaranteed</span>
+          </div>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            No personal account or WhatsApp login required. Files are sent securely over an encrypted session and auto-deleted once printed.
+          </p>
+        </div>
+      </main>
+    </div>
+  );
+};
