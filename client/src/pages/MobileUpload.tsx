@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Header } from '../components/Header.js';
 import { getSessionInfo, notifyPhoneConnected, uploadFiles } from '../services/api.js';
@@ -16,9 +16,7 @@ import {
   Plus, 
   Lock, 
   Smartphone,
-  MessageSquare,
   FolderDown,
-  Share2,
   HelpCircle
 } from 'lucide-react';
 
@@ -34,9 +32,6 @@ export const MobileUpload: React.FC = () => {
   const [initError, setInitError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showWaGuide, setShowWaGuide] = useState<boolean>(false);
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const whatsappFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -84,6 +79,8 @@ export const MobileUpload: React.FC = () => {
       setSelectedFiles((prev) => [...prev, ...validFiles]);
       setUploadSuccess(false);
       setUploadError(null);
+      // Reset input value so re-selecting same file works
+      e.target.value = '';
     }
   };
 
@@ -161,6 +158,8 @@ export const MobileUpload: React.FC = () => {
     );
   }
 
+  const ACCEPT_TYPES = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*,text/plain,.pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt";
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header pcId={session.pcId} isMobile />
@@ -201,46 +200,44 @@ export const MobileUpload: React.FC = () => {
           </div>
         )}
 
-        {/* Hidden File Inputs */}
+        {/* Accessible Native File Inputs */}
         <input
+          id="main-file-input"
           type="file"
-          ref={fileInputRef}
           onChange={handleFileSelect}
           multiple
-          accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt"
-          className="hidden"
+          accept={ACCEPT_TYPES}
+          style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}
         />
 
         <input
+          id="whatsapp-file-input"
           type="file"
-          ref={whatsappFileInputRef}
           onChange={handleFileSelect}
           multiple
-          accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt"
-          className="hidden"
+          accept={ACCEPT_TYPES}
+          style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}
         />
 
         {/* Select Files & WhatsApp Shortcut Buttons */}
         <div className="bg-white rounded-2xl p-6 shadow-md border border-slate-200/80 space-y-3 text-center">
-          {/* Main Select Files */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="w-full py-4 px-6 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-base shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
+          {/* Main Select Files Label Trigger */}
+          <label
+            htmlFor="main-file-input"
+            className="w-full py-4 px-6 rounded-2xl bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-bold text-base shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center space-x-2 cursor-pointer select-none"
           >
             <Plus className="w-5 h-5" />
             <span>+ Select Files from Phone</span>
-          </button>
+          </label>
 
-          {/* Option 3: WhatsApp Document Folder Shortcut */}
-          <button
-            onClick={() => whatsappFileInputRef.current?.click()}
-            disabled={uploading}
-            className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
+          {/* Option 3: WhatsApp Document Folder Shortcut Label Trigger */}
+          <label
+            htmlFor="whatsapp-file-input"
+            className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer select-none"
           >
             <FolderDown className="w-4 h-4" />
             <span>📁 Pick File Received on WhatsApp</span>
-          </button>
+          </label>
 
           {/* Collapsible Helper: How to share from WhatsApp */}
           <div className="pt-2">
