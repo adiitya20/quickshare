@@ -221,6 +221,8 @@ export const PCSession: React.FC = () => {
               <QRDisplay
                 qrUrl={session.qrUrl}
                 pcId={session.pcId}
+                pin={session.pin}
+                whatsappUrl={session.whatsappUrl}
                 expiresAt={session.expiresAt}
                 status={status}
                 receivedCount={files.length}

@@ -30,6 +30,7 @@ export function initDatabase() {
         CREATE TABLE IF NOT EXISTS sessions (
           id TEXT PRIMARY KEY,
           pc_id TEXT NOT NULL,
+          pin TEXT,
           token_hash TEXT NOT NULL UNIQUE,
           created_at DATETIME NOT NULL,
           expires_at DATETIME NOT NULL,
@@ -37,6 +38,7 @@ export function initDatabase() {
         );
 
         CREATE INDEX IF NOT EXISTS idx_sessions_token_hash ON sessions(token_hash);
+        CREATE INDEX IF NOT EXISTS idx_sessions_pin ON sessions(pin);
         CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 
         CREATE TABLE IF NOT EXISTS files (
@@ -69,10 +71,10 @@ export function dbInsertSession(session: SessionRecord): void {
   if (sqliteDb) {
     try {
       const stmt = sqliteDb.prepare(`
-        INSERT INTO sessions (id, pc_id, token_hash, created_at, expires_at, status)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO sessions (id, pc_id, pin, token_hash, created_at, expires_at, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
-      stmt.run(session.id, session.pc_id, session.token_hash, session.created_at, session.expires_at, session.status);
+      stmt.run(session.id, session.pc_id, session.pin || '', session.token_hash, session.created_at, session.expires_at, session.status);
     } catch (e) {}
   }
 }
@@ -87,6 +89,22 @@ export function dbGetSessionByTokenHash(tokenHash: string): SessionRecord | null
   }
   for (const s of memorySessions.values()) {
     if (s.token_hash === tokenHash) return s;
+  }
+  return null;
+}
+
+export function dbGetSessionByPin(pin: string): SessionRecord | null {
+  for (const s of memorySessions.values()) {
+    if (s.pin === pin && s.status !== 'EXPIRED' && s.status !== 'CLOSED') {
+      return s;
+    }
+  }
+  if (sqliteDb) {
+    try {
+      const stmt = sqliteDb.prepare('SELECT * FROM sessions WHERE pin = ? AND status NOT IN ("EXPIRED", "CLOSED")');
+      const res = stmt.get(pin) as SessionRecord | undefined;
+      if (res) return res;
+    } catch (e) {}
   }
   return null;
 }

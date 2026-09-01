@@ -67,7 +67,7 @@ export async function uploadFiles(
   files: File[],
   onProgress?: (progressPercent: number) => void
 ): Promise<{ success: boolean; files: FileItem[]; totalFiles: number }> {
-  const CHUNK_SIZE = 1.5 * 1024 * 1024; // 1.5 MB chunk size (bypasses Vercel 4.5MB payload limit)
+  const CHUNK_SIZE = 1.5 * 1024 * 1024;
   const encodedToken = encodeURIComponent(token);
 
   let totalBytes = files.reduce((acc, f) => acc + f.size, 0);
@@ -124,6 +124,26 @@ export async function uploadFiles(
     files: resultFiles,
     totalFiles: lastTotalFilesCount || resultFiles.length
   };
+}
+
+export async function simulateWhatsappForward(
+  pin: string,
+  fileName: string,
+  textContent?: string,
+  fileBase64?: string
+): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/whatsapp/simulate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pin, fileName, textContent, fileBase64 })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'WhatsApp forward failed');
+  }
+
+  return response.json();
 }
 
 export async function deleteSingleFile(fileId: string): Promise<void> {

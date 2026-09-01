@@ -13,8 +13,11 @@ export interface FileItem {
 export interface SessionData {
   sessionId: string;
   pcId: string;
+  pin: string;
   token: string;
   qrUrl: string;
+  whatsappUrl?: string;
+  whatsappBotNumber?: string;
   expiresAt: string;
   durationSeconds: number;
   status: SessionStatus;

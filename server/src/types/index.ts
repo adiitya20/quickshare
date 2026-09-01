@@ -3,6 +3,7 @@ export type SessionStatus = 'WAITING' | 'CONNECTED' | 'UPLOADING' | 'READY' | 'E
 export interface SessionRecord {
   id: string;
   pc_id: string;
+  pin: string;
   token_hash: string;
   created_at: string;
   expires_at: string;
@@ -26,8 +27,11 @@ export interface CreateSessionRequest {
 export interface CreateSessionResponse {
   sessionId: string;
   pcId: string;
+  pin: string;
   token: string;
   qrUrl: string;
+  whatsappUrl: string;
+  whatsappBotNumber: string;
   expiresAt: string;
   durationSeconds: number;
 }
@@ -35,6 +39,7 @@ export interface CreateSessionResponse {
 export interface SessionInfoResponse {
   sessionId: string;
   pcId: string;
+  pin: string;
   expiresAt: string;
   status: SessionStatus;
   isExpired: boolean;

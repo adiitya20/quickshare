@@ -20,6 +20,8 @@ function extractStringParam(param: string | string[] | undefined): string {
   return param || '';
 }
 
+const WHATSAPP_BOT_NUMBER = process.env.WHATSAPP_BOT_NUMBER || '+14155238886';
+
 export function handleCreateSession(req: Request, res: Response) {
   try {
     const { pcId } = req.body || {};
@@ -33,12 +35,16 @@ export function handleCreateSession(req: Request, res: Response) {
     const host = extractStringParam(fwdHost) || req.get('host');
     const clientUrl = extractStringParam(originHeader) || `${protocol}://${host}` || config.clientOrigin;
     const qrUrl = `${clientUrl}/upload/${rawToken}`;
+    const whatsappUrl = `https://wa.me/${WHATSAPP_BOT_NUMBER.replace(/\+/g, '')}?text=CONNECT%20${session.pin}`;
 
     return res.status(201).json({
       sessionId: session.id,
       pcId: session.pc_id,
+      pin: session.pin,
       token: rawToken,
       qrUrl,
+      whatsappUrl,
+      whatsappBotNumber: WHATSAPP_BOT_NUMBER,
       expiresAt: session.expires_at,
       durationSeconds: config.sessionDurationMinutes * 60
     });
@@ -80,6 +86,7 @@ export function handleGetSessionInfo(req: Request, res: Response) {
     return res.json({
       sessionId: session.id,
       pcId: session.pc_id,
+      pin: session.pin || '1234',
       expiresAt: session.expires_at,
       status: isExpired ? 'EXPIRED' : session.status,
       isExpired,
@@ -137,12 +144,16 @@ export function handleRegenerateSession(req: Request, res: Response) {
     const host = extractStringParam(fwdHost) || req.get('host');
     const clientUrl = extractStringParam(originHeader) || `${protocol}://${host}` || config.clientOrigin;
     const qrUrl = `${clientUrl}/upload/${rawToken}`;
+    const whatsappUrl = `https://wa.me/${WHATSAPP_BOT_NUMBER.replace(/\+/g, '')}?text=CONNECT%20${session.pin}`;
 
     return res.status(201).json({
       sessionId: session.id,
       pcId: session.pc_id,
+      pin: session.pin,
       token: rawToken,
       qrUrl,
+      whatsappUrl,
+      whatsappBotNumber: WHATSAPP_BOT_NUMBER,
       expiresAt: session.expires_at,
       durationSeconds: config.sessionDurationMinutes * 60
     });

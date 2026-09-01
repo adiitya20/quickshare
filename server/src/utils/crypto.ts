@@ -1,20 +1,28 @@
 import crypto from 'crypto';
 import { config } from './config';
 
-const SECRET_KEY = process.env.SESSION_SECRET || 'qrprint-secure-capability-token-secret-9842';
+const SECRET_KEY = process.env.SESSION_SECRET || 'qrshareit-secure-capability-token-secret-9842';
 
 export interface TokenPayload {
   s: string; // sessionId
   p: string; // pcId
+  pin: string; // 4-digit PIN
   e: number; // expiresAt timestamp (ms)
 }
 
 /**
- * Generate a signed session capability token containing session ID, PC ID, and expiry timestamp
+ * Generate a 4-digit numeric PIN for WhatsApp session connection
  */
-export function generateSignedToken(sessionId: string, pcId: string, durationMinutes: number = 10): string {
+export function generateNumericPin(): string {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
+/**
+ * Generate a signed session capability token containing session ID, PC ID, PIN, and expiry timestamp
+ */
+export function generateSignedToken(sessionId: string, pcId: string, pin: string, durationMinutes: number = 10): string {
   const expiresAt = Date.now() + durationMinutes * 60 * 1000;
-  const payload: TokenPayload = { s: sessionId, p: pcId, e: expiresAt };
+  const payload: TokenPayload = { s: sessionId, p: pcId, pin, e: expiresAt };
   const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signature = crypto.createHmac('sha256', SECRET_KEY).update(payloadBase64).digest('hex');
   return `${payloadBase64}.${signature}`;

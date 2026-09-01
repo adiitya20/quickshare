@@ -2,13 +2,14 @@ import {
   dbInsertSession, 
   dbGetSessionByTokenHash, 
   dbGetSessionById, 
+  dbGetSessionByPin,
   dbUpdateSessionStatus, 
   dbGetFilesBySessionId, 
   dbGetExpiredSessions, 
   dbMarkSessionExpired, 
   dbDeleteSession 
 } from '../db';
-import { generateSignedToken, decodeSignedToken, hashToken, generateId } from '../utils/crypto';
+import { generateSignedToken, decodeSignedToken, generateNumericPin, hashToken, generateId } from '../utils/crypto';
 import { config } from '../utils/config';
 import { SessionRecord, FileRecord, SessionStatus } from '../types';
 
@@ -18,7 +19,8 @@ export function createSession(pcIdInput?: string): {
 } {
   const sessionId = generateId();
   const pcId = pcIdInput || `PC-${Math.floor(1000 + Math.random() * 9000)}`;
-  const rawToken = generateSignedToken(sessionId, pcId, config.sessionDurationMinutes);
+  const pin = generateNumericPin();
+  const rawToken = generateSignedToken(sessionId, pcId, pin, config.sessionDurationMinutes);
   const tokenHash = hashToken(rawToken);
   const now = new Date();
   const expiresAt = new Date(now.getTime() + config.sessionDurationMinutes * 60 * 1000);
@@ -26,6 +28,7 @@ export function createSession(pcIdInput?: string): {
   const session: SessionRecord = {
     id: sessionId,
     pc_id: pcId,
+    pin,
     token_hash: tokenHash,
     created_at: now.toISOString(),
     expires_at: expiresAt.toISOString(),
@@ -43,7 +46,6 @@ export function getSessionByToken(token: string): SessionRecord | null {
   const tokenHash = hashToken(token);
   const existing = dbGetSessionByTokenHash(tokenHash);
   if (existing) {
-    // Check if countdown expired
     if (new Date(existing.expires_at).getTime() <= Date.now() && existing.status !== 'EXPIRED' && existing.status !== 'CLOSED') {
       existing.status = 'EXPIRED';
       dbUpdateSessionStatus(existing.id, 'EXPIRED');
@@ -51,13 +53,13 @@ export function getSessionByToken(token: string): SessionRecord | null {
     return existing;
   }
 
-  // If not found in local DB store (e.g. separate Vercel serverless instance), decode signed capability token
   const decoded = decodeSignedToken(token);
   if (decoded) {
     const { payload, isExpired } = decoded;
     const session: SessionRecord = {
       id: payload.s,
       pc_id: payload.p,
+      pin: payload.pin || '1234',
       token_hash: tokenHash,
       created_at: new Date(payload.e - config.sessionDurationMinutes * 60 * 1000).toISOString(),
       expires_at: new Date(payload.e).toISOString(),
@@ -67,6 +69,19 @@ export function getSessionByToken(token: string): SessionRecord | null {
     return session;
   }
 
+  return null;
+}
+
+export function getSessionByPin(pin: string): SessionRecord | null {
+  if (!pin) return null;
+  const session = dbGetSessionByPin(pin);
+  if (session) {
+    if (new Date(session.expires_at).getTime() <= Date.now() && session.status !== 'EXPIRED' && session.status !== 'CLOSED') {
+      session.status = 'EXPIRED';
+      dbUpdateSessionStatus(session.id, 'EXPIRED');
+    }
+    return session;
+  }
   return null;
 }
 
