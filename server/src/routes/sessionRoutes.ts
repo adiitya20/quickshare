@@ -6,7 +6,12 @@ import {
   handleRegenerateSession, 
   handleDeleteSession 
 } from '../controllers/sessionController';
-import { handleUploadFiles, handleGetSessionFiles, handleDeleteAllSessionFiles } from '../controllers/fileController';
+import { 
+  handleUploadFiles, 
+  handleUploadChunk, 
+  handleGetSessionFiles, 
+  handleDeleteAllSessionFiles 
+} from '../controllers/fileController';
 import { sessionCreateLimiter, fileUploadLimiter } from '../middleware/rateLimiter';
 import { validateUploadSession, uploadMiddleware } from '../middleware/fileValidation';
 
@@ -17,6 +22,14 @@ router.get('/:token', handleGetSessionInfo);
 router.post('/:token/notify-connected', handleNotifyPhoneConnected);
 router.post('/:token/regenerate', handleRegenerateSession);
 router.delete('/:token', handleDeleteSession);
+
+router.post(
+  '/:token/files/chunk',
+  fileUploadLimiter,
+  validateUploadSession,
+  uploadMiddleware.single('chunk'),
+  handleUploadChunk
+);
 
 router.post(
   '/:token/files',

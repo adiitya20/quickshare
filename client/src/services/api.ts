@@ -67,49 +67,63 @@ export async function uploadFiles(
   files: File[],
   onProgress?: (progressPercent: number) => void
 ): Promise<{ success: boolean; files: FileItem[]; totalFiles: number }> {
-  return new Promise((resolve, reject) => {
-    const encodedToken = encodeURIComponent(token);
-    const formData = new FormData();
-    for (const file of files) {
-      formData.append('files', file);
-    }
+  const CHUNK_SIZE = 1.5 * 1024 * 1024; // 1.5 MB chunk size (bypasses Vercel 4.5MB payload limit)
+  const encodedToken = encodeURIComponent(token);
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE}/sessions/${encodedToken}/files`);
+  let totalBytes = files.reduce((acc, f) => acc + f.size, 0);
+  let totalUploadedBytes = 0;
+  const resultFiles: FileItem[] = [];
+  let lastTotalFilesCount = 0;
 
-    if (xhr.upload && onProgress) {
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          onProgress(percent);
-        }
-      };
-    }
+  for (const file of files) {
+    const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE) || 1;
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          resolve(data);
-        } catch (e) {
-          reject(new Error('Invalid response from server'));
-        }
-      } else {
-        try {
-          const errorData = JSON.parse(xhr.responseText);
-          reject(new Error(errorData.error || 'Upload failed'));
-        } catch (e) {
-          reject(new Error(`Upload failed with status ${xhr.status}`));
-        }
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const start = chunkIndex * CHUNK_SIZE;
+      const end = Math.min(file.size, start + CHUNK_SIZE);
+      const chunkBlob = file.slice(start, end);
+
+      const formData = new FormData();
+      formData.append('fileId', fileId);
+      formData.append('chunkIndex', chunkIndex.toString());
+      formData.append('totalChunks', totalChunks.toString());
+      formData.append('originalName', file.name);
+      formData.append('mimeType', file.type || 'application/octet-stream');
+      formData.append('totalSize', file.size.toString());
+      formData.append('chunk', chunkBlob, file.name);
+
+      const response = await fetch(`${API_BASE}/sessions/${encodedToken}/files/chunk`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || `Upload failed for ${file.name} (Status ${response.status})`);
       }
-    };
 
-    xhr.onerror = () => {
-      reject(new Error('Network error during file upload'));
-    };
+      const resData = await response.json();
+      totalUploadedBytes += (end - start);
 
-    xhr.send(formData);
-  });
+      if (onProgress && totalBytes > 0) {
+        onProgress(Math.min(99, Math.round((totalUploadedBytes / totalBytes) * 100)));
+      }
+
+      if (resData.completed && resData.file) {
+        resultFiles.push(resData.file);
+        if (resData.totalFiles) lastTotalFilesCount = resData.totalFiles;
+      }
+    }
+  }
+
+  if (onProgress) onProgress(100);
+
+  return {
+    success: true,
+    files: resultFiles,
+    totalFiles: lastTotalFilesCount || resultFiles.length
+  };
 }
 
 export async function deleteSingleFile(fileId: string): Promise<void> {
