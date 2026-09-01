@@ -16,6 +16,11 @@ import { notifyFilesReceived, notifyFileDeleted } from '../services/socketServic
 import { config } from '../utils/config';
 import { FileItem } from '../types';
 
+function extractStringParam(param: string | string[] | undefined): string {
+  if (Array.isArray(param)) return param[0] || '';
+  return param || '';
+}
+
 export function handleUploadFiles(req: Request, res: Response) {
   try {
     const session = (req as any).sessionRecord;
@@ -75,7 +80,7 @@ export function handleUploadFiles(req: Request, res: Response) {
 
 export function handleGetSessionFiles(req: Request, res: Response) {
   try {
-    const { token } = req.params;
+    const token = extractStringParam(req.params.token);
     const session = getSessionByToken(token);
 
     if (!session) {
@@ -101,7 +106,7 @@ export function handleGetSessionFiles(req: Request, res: Response) {
 
 export function handleGetFileContent(req: Request, res: Response) {
   try {
-    const { fileId } = req.params;
+    const fileId = extractStringParam(req.params.fileId);
     const isPreview = req.query.preview === 'true';
 
     const file = getFileById(fileId);
@@ -132,7 +137,7 @@ export function handleGetFileContent(req: Request, res: Response) {
 
 export function handleDeleteSingleFile(req: Request, res: Response) {
   try {
-    const { fileId } = req.params;
+    const fileId = extractStringParam(req.params.fileId);
     const file = getFileById(fileId);
 
     if (!file) {
@@ -152,7 +157,7 @@ export function handleDeleteSingleFile(req: Request, res: Response) {
 
 export function handleDeleteAllSessionFiles(req: Request, res: Response) {
   try {
-    const { token } = req.params;
+    const token = extractStringParam(req.params.token);
     const session = getSessionByToken(token);
 
     if (!session) {

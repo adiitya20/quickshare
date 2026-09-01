@@ -15,14 +15,23 @@ import {
 import { config } from '../utils/config';
 import { FileItem } from '../types';
 
+function extractStringParam(param: string | string[] | undefined): string {
+  if (Array.isArray(param)) return param[0] || '';
+  return param || '';
+}
+
 export function handleCreateSession(req: Request, res: Response) {
   try {
     const { pcId } = req.body || {};
     const { session, rawToken } = createSession(pcId);
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-    const clientUrl = req.headers.origin || `${protocol}://${host}` || config.clientOrigin;
+    const fwdProto = req.headers['x-forwarded-proto'];
+    const fwdHost = req.headers['x-forwarded-host'];
+    const originHeader = req.headers.origin;
+
+    const protocol = extractStringParam(fwdProto) || req.protocol || 'http';
+    const host = extractStringParam(fwdHost) || req.get('host');
+    const clientUrl = extractStringParam(originHeader) || `${protocol}://${host}` || config.clientOrigin;
     const qrUrl = `${clientUrl}/upload/${rawToken}`;
 
     return res.status(201).json({
@@ -41,7 +50,7 @@ export function handleCreateSession(req: Request, res: Response) {
 
 export function handleGetSessionInfo(req: Request, res: Response) {
   try {
-    const { token } = req.params;
+    const token = extractStringParam(req.params.token);
     const session = getSessionByToken(token);
 
     if (!session) {
@@ -83,7 +92,7 @@ export function handleGetSessionInfo(req: Request, res: Response) {
 
 export function handleNotifyPhoneConnected(req: Request, res: Response) {
   try {
-    const { token } = req.params;
+    const token = extractStringParam(req.params.token);
     const session = getSessionByToken(token);
 
     if (!session) {
@@ -108,7 +117,7 @@ export function handleNotifyPhoneConnected(req: Request, res: Response) {
 
 export function handleRegenerateSession(req: Request, res: Response) {
   try {
-    const { token } = req.params;
+    const token = extractStringParam(req.params.token);
     const oldSession = getSessionByToken(token);
 
     if (oldSession) {
@@ -120,9 +129,13 @@ export function handleRegenerateSession(req: Request, res: Response) {
     const pcId = oldSession ? oldSession.pc_id : undefined;
     const { session, rawToken } = createSession(pcId);
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-    const clientUrl = req.headers.origin || `${protocol}://${host}` || config.clientOrigin;
+    const fwdProto = req.headers['x-forwarded-proto'];
+    const fwdHost = req.headers['x-forwarded-host'];
+    const originHeader = req.headers.origin;
+
+    const protocol = extractStringParam(fwdProto) || req.protocol || 'http';
+    const host = extractStringParam(fwdHost) || req.get('host');
+    const clientUrl = extractStringParam(originHeader) || `${protocol}://${host}` || config.clientOrigin;
     const qrUrl = `${clientUrl}/upload/${rawToken}`;
 
     return res.status(201).json({
@@ -140,7 +153,7 @@ export function handleRegenerateSession(req: Request, res: Response) {
 
 export function handleDeleteSession(req: Request, res: Response) {
   try {
-    const { token } = req.params;
+    const token = extractStringParam(req.params.token);
     const session = getSessionByToken(token);
 
     if (!session) {

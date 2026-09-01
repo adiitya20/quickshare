@@ -7,6 +7,11 @@ import { isAllowedExtension, sanitizeFilename } from '../utils/sanitizer';
 import { generateId } from '../utils/crypto';
 import { getSessionByToken, getSessionFiles } from '../services/sessionService';
 
+function extractStringParam(param: string | string[] | undefined): string {
+  if (Array.isArray(param)) return param[0] || '';
+  return param || '';
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const session = (req as any).sessionRecord;
@@ -46,7 +51,7 @@ export const uploadMiddleware = multer({
 
 export async function validateUploadSession(req: Request, res: Response, next: NextFunction) {
   try {
-    const token = req.params.token;
+    const token = extractStringParam(req.params.token);
     if (!token) {
       return res.status(400).json({ error: 'Session token is required.' });
     }
