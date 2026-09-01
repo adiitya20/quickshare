@@ -27,32 +27,32 @@ export const MobileUpload: React.FC = () => {
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
   const [uploadedFiles, setUploadedFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!token) {
-      setError('Invalid upload link or missing token.');
+      setInitError('Invalid upload link or missing token.');
       setLoading(false);
       return;
     }
 
     const initMobileUpload = async () => {
       setLoading(true);
-      setError(null);
+      setInitError(null);
       try {
         const sessionData = await getSessionInfo(token);
         setSession(sessionData);
 
         if (sessionData.isExpired) {
-          setError('This QR code session has expired. Please scan the new QR code displayed on the computer.');
+          setInitError('This QR code session has expired. Please scan the new QR code displayed on the computer.');
         } else {
-          // Notify PC socket that phone has connected
           await notifyPhoneConnected(token).catch(() => {});
         }
       } catch (err: any) {
-        setError(err.message || 'This QR code has expired or is invalid. Please scan a new QR code.');
+        setInitError(err.message || 'This QR code has expired or is invalid. Please scan a new QR code.');
       } finally {
         setLoading(false);
       }
@@ -65,7 +65,6 @@ export const MobileUpload: React.FC = () => {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files);
       
-      // Filter blocked extensions client side as early check
       const blockedExts = ['.exe', '.bat', '.cmd', '.sh', '.ps1', '.js', '.vbs', '.msi'];
       const validFiles = newFiles.filter((f) => {
         const ext = `.${f.name.split('.').pop()?.toLowerCase()}`;
@@ -78,11 +77,13 @@ export const MobileUpload: React.FC = () => {
 
       setSelectedFiles((prev) => [...prev, ...validFiles]);
       setUploadSuccess(false);
+      setUploadError(null);
     }
   };
 
   const handleRemoveFile = (index: number) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setUploadError(null);
   };
 
   const handleUpload = async () => {
@@ -90,7 +91,7 @@ export const MobileUpload: React.FC = () => {
 
     setUploading(true);
     setUploadProgress(0);
-    setError(null);
+    setUploadError(null);
 
     try {
       const result = await uploadFiles(token, selectedFiles, (percent) => {
@@ -101,7 +102,7 @@ export const MobileUpload: React.FC = () => {
       setUploadSuccess(true);
       setSelectedFiles([]);
     } catch (err: any) {
-      setError(err.message || 'Upload failed. Please try again.');
+      setUploadError(err.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -132,7 +133,7 @@ export const MobileUpload: React.FC = () => {
     );
   }
 
-  if (error || !session) {
+  if (initError || !session) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
         <Header isMobile />
@@ -143,7 +144,7 @@ export const MobileUpload: React.FC = () => {
             </div>
             <h2 className="text-xl font-extrabold text-slate-900">QR Code Expired</h2>
             <p className="text-xs text-slate-600 leading-relaxed">
-              {error || 'This QR token is no longer active.'}
+              {initError || 'This QR token is no longer active.'}
             </p>
             <div className="pt-2 text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200">
               Please check the college PC screen and scan the newly generated QR code.
@@ -171,6 +172,17 @@ export const MobileUpload: React.FC = () => {
             Target PC: <strong className="text-slate-900">{session.pcId}</strong>
           </p>
         </div>
+
+        {/* Upload Failure Alert Box */}
+        {uploadError && (
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-rose-700 text-xs space-y-1 animate-fade-in flex items-start space-x-3">
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold block">Upload Error</span>
+              <span>{uploadError}</span>
+            </div>
+          </div>
+        )}
 
         {/* Success Alert */}
         {uploadSuccess && (

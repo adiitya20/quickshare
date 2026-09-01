@@ -1,22 +1,60 @@
 import crypto from 'crypto';
+import { config } from './config';
+
+const SECRET_KEY = process.env.SESSION_SECRET || 'qrprint-secure-capability-token-secret-9842';
+
+export interface TokenPayload {
+  s: string; // sessionId
+  p: string; // pcId
+  e: number; // expiresAt timestamp (ms)
+}
 
 /**
- * Generate a cryptographically secure random token (64 hex chars = 256 bits of entropy)
+ * Generate a signed session capability token containing session ID, PC ID, and expiry timestamp
  */
+export function generateSignedToken(sessionId: string, pcId: string, durationMinutes: number = 10): string {
+  const expiresAt = Date.now() + durationMinutes * 60 * 1000;
+  const payload: TokenPayload = { s: sessionId, p: pcId, e: expiresAt };
+  const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha256', SECRET_KEY).update(payloadBase64).digest('hex');
+  return `${payloadBase64}.${signature}`;
+}
+
+/**
+ * Verify and decode a signed session capability token
+ */
+export function decodeSignedToken(token: string): { payload: TokenPayload; isExpired: boolean } | null {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return null;
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+
+  const [payloadBase64, signature] = parts;
+  const expectedSig = crypto.createHmac('sha256', SECRET_KEY).update(payloadBase64).digest('hex');
+
+  try {
+    const sigBuf = Buffer.from(signature);
+    const expBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return null; // Tampered token
+    }
+
+    const payloadJson = Buffer.from(payloadBase64, 'base64url').toString('utf8');
+    const payload: TokenPayload = JSON.parse(payloadJson);
+    const isExpired = Date.now() > payload.e;
+    return { payload, isExpired };
+  } catch (e) {
+    return null;
+  }
+}
+
 export function generateSecureToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
-/**
- * Hash token using SHA-256 for DB lookup
- */
 export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-/**
- * Generate a safe unique ID for sessions and files
- */
 export function generateId(): string {
   return crypto.randomUUID();
 }

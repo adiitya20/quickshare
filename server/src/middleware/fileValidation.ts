@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import { config } from '../utils/config';
-import { isAllowedExtension, sanitizeFilename } from '../utils/sanitizer';
-import { generateId } from '../utils/crypto';
+import { isAllowedExtension } from '../utils/sanitizer';
 import { getSessionByToken, getSessionFiles } from '../services/sessionService';
 
 function extractStringParam(param: string | string[] | undefined): string {
@@ -12,26 +10,8 @@ function extractStringParam(param: string | string[] | undefined): string {
   return param || '';
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const session = (req as any).sessionRecord;
-    if (!session) {
-      return cb(new Error('Session not found'), '');
-    }
-    const sessionDir = path.join(config.uploadDir, session.id);
-    if (!fs.existsSync(sessionDir)) {
-      try {
-        fs.mkdirSync(sessionDir, { recursive: true });
-      } catch (e) {}
-    }
-    cb(null, sessionDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueFilename = `${generateId()}${ext}`;
-    cb(null, uniqueFilename);
-  }
-});
+// Use Memory Storage for 100% Vercel serverless read-only filesystem compatibility
+const storage = multer.memoryStorage();
 
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const originalName = file.originalname;
@@ -61,7 +41,9 @@ export async function validateUploadSession(req: Request, res: Response, next: N
       return res.status(404).json({ error: 'Session not found or token invalid.' });
     }
 
-    if (session.status === 'EXPIRED' || session.status === 'CLOSED' || new Date(session.expires_at) < new Date()) {
+    const isExpired = new Date(session.expires_at).getTime() <= Date.now() || session.status === 'EXPIRED' || session.status === 'CLOSED';
+
+    if (isExpired) {
       return res.status(410).json({ error: 'This QR session has expired. Please scan the new QR code on the PC.' });
     }
 

@@ -4,6 +4,7 @@ import fs from 'fs';
 import { 
   createFileRecord, 
   getFileById, 
+  getFileBuffer,
   deleteFile, 
   deleteAllSessionFiles 
 } from '../services/fileService';
@@ -33,12 +34,14 @@ export function handleUploadFiles(req: Request, res: Response) {
     const savedFiles: FileItem[] = [];
 
     for (const file of files) {
+      const storedName = file.filename || `${file.fieldname}-${Date.now()}`;
       const fileRecord = createFileRecord(
         session.id,
         file.originalname,
-        file.filename,
+        storedName,
         file.mimetype || 'application/octet-stream',
-        file.size
+        file.size,
+        file.buffer
       );
 
       savedFiles.push({
@@ -74,6 +77,7 @@ export function handleUploadFiles(req: Request, res: Response) {
       totalFiles: formattedAllFiles.length
     });
   } catch (error: any) {
+    console.error('handleUploadFiles error:', error);
     return res.status(500).json({ error: error.message || 'File upload failed.' });
   }
 }
@@ -114,10 +118,9 @@ export function handleGetFileContent(req: Request, res: Response) {
       return res.status(404).send('File not found or has been deleted.');
     }
 
-    const filePath = path.join(config.uploadDir, file.session_id, file.stored_filename);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).send('Physical file missing.');
+    const buffer = getFileBuffer(fileId);
+    if (!buffer) {
+      return res.status(404).send('Physical file content missing.');
     }
 
     res.setHeader('Content-Type', file.mime_type);
@@ -128,8 +131,7 @@ export function handleGetFileContent(req: Request, res: Response) {
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.original_filename)}"`);
     }
 
-    const stream = fs.createReadStream(filePath);
-    return stream.pipe(res);
+    return res.send(buffer);
   } catch (error: any) {
     return res.status(500).send('Error serving file content.');
   }

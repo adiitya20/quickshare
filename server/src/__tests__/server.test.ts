@@ -22,21 +22,21 @@ describe('QRPrint API & Security Integration Tests', () => {
     expect(res.body.status).toBe('ok');
   });
 
-  it('2. POST /api/sessions should create session with 64-char crypto token & QR URL', async () => {
+  it('2. POST /api/sessions should create session with signed crypto capability token & QR URL', async () => {
     const res = await request.post('/api/sessions').send({ pcId: 'LAB-01 / PC-05' });
     expect(res.status).toBe(201);
     expect(res.body.sessionId).toBeDefined();
     expect(res.body.pcId).toBe('LAB-01 / PC-05');
     expect(res.body.token).toBeDefined();
-    expect(res.body.token.length).toBe(64); // 32 bytes hex
-    expect(res.body.qrUrl).toContain(`/upload/${res.body.token}`);
+    expect(res.body.token).toContain('.'); // Signed capability token (payload.signature)
+    expect(res.body.qrUrl).toContain(`/upload/${encodeURIComponent(res.body.token)}`);
   });
 
   it('3. GET /api/sessions/:token should return valid session info', async () => {
     const createRes = await request.post('/api/sessions').send({ pcId: 'LAB-02 / PC-12' });
     const token = createRes.body.token;
 
-    const infoRes = await request.get(`/api/sessions/${token}`);
+    const infoRes = await request.get(`/api/sessions/${encodeURIComponent(token)}`);
     expect(infoRes.status).toBe(200);
     expect(infoRes.body.pcId).toBe('LAB-02 / PC-12');
     expect(infoRes.body.status).toBe('WAITING');
@@ -50,7 +50,7 @@ describe('QRPrint API & Security Integration Tests', () => {
 
     // Test valid file upload (mock text/pdf buffer)
     const validUpload = await request
-      .post(`/api/sessions/${token}/files`)
+      .post(`/api/sessions/${encodeURIComponent(token)}/files`)
       .attach('files', Buffer.from('%PDF-1.4 Mock PDF Content'), 'Assignment.pdf');
 
     expect(validUpload.status).toBe(201);
@@ -60,7 +60,7 @@ describe('QRPrint API & Security Integration Tests', () => {
 
     // Test invalid executable file upload (.exe)
     const invalidUpload = await request
-      .post(`/api/sessions/${token}/files`)
+      .post(`/api/sessions/${encodeURIComponent(token)}/files`)
       .attach('files', Buffer.from('MZ... executable payload'), 'malicious_virus.exe');
 
     expect(invalidUpload.status).toBe(500);
@@ -72,7 +72,7 @@ describe('QRPrint API & Security Integration Tests', () => {
     const token = createRes.body.token;
 
     const uploadRes = await request
-      .post(`/api/sessions/${token}/files`)
+      .post(`/api/sessions/${encodeURIComponent(token)}/files`)
       .attach('files', Buffer.from('Sample Notes text content'), 'Notes.txt');
 
     const fileId = uploadRes.body.files[0].id;
@@ -88,13 +88,12 @@ describe('QRPrint API & Security Integration Tests', () => {
 
   it('6. Automatic purge of expired sessions', async () => {
     const { session, rawToken } = createSession('EXPIRED-PC');
-    // Set expires_at to 10 seconds in the past
     dbSetSessionExpiresAt(session.id, new Date(Date.now() - 10000).toISOString());
 
     const count = purgeExpiredSessionsNow();
     expect(count).toBeGreaterThanOrEqual(1);
 
-    const checkRes = await request.get(`/api/sessions/${rawToken}`);
+    const checkRes = await request.get(`/api/sessions/${encodeURIComponent(rawToken)}`);
     expect(checkRes.body.status).toBe('EXPIRED');
     expect(checkRes.body.isExpired).toBe(true);
   });
